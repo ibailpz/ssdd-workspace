@@ -263,9 +263,11 @@ public class JFrameMainWindow extends JFrame implements Observer {
 				int result = JOptionPane.showConfirmDialog(this, "Do you want to start a new chat session with '" + this.listUsers.getSelectedValue() + "'", "Open chat Session", JOptionPane.YES_NO_OPTION);
 
 				if (result == JOptionPane.OK_OPTION && this.controller.sendChatRequest(this.listUsers.getSelectedValue())) {
-					this.listUsers.clearSelection();
+					//this.listUsers.clearSelection();
 					this.setTitle("Chat session between '" + this.controller.getConnectedUser() + "' & '" + this.listUsers.getSelectedValue() + "'");
-				}			
+				} else {
+					this.listUsers.clearSelection();
+				}
 			//Send a chat closure
 			} else if (this.controller.isChatSessionOpened() && this.listUsers.getSelectedValue().equals(this.controller.getChatReceiver())) {			
 				int result = JOptionPane.showConfirmDialog(this, "Do you want to close your current chat session with '" + this.controller.getChatReceiver() + "'", "Close chat Session", JOptionPane.YES_NO_OPTION);				
