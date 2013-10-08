@@ -7,7 +7,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 
 public class UDPClient {
-	private static final String DEFAULT_IP = "192.168.1.100";
+	private static final String DEFAULT_IP = "0.0.0.0";
 	private static final int DEFAULT_PORT = 6789;
 	private static final String DEFAULT_MESSAGE = "Hello World!";	
 	
