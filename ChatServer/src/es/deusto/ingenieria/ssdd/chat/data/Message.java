@@ -8,6 +8,7 @@ public class Message {
 	private String text;
 	private User from;
 	private User to;
+	private String message_code;
 	
 	private static SimpleDateFormat dateFormatter = new SimpleDateFormat("HH:mm:ss");
 	
@@ -60,5 +61,13 @@ public class Message {
 		return "[" + dateFormatter.format(new Date(this.timestamp)) + "] '" + 
 	           this.from + " -> " + this.to + " : " + this.text; 
 				
+	}
+
+	public String getMessage_code() {
+		return message_code;
+	}
+
+	public void setMessage_code(String message_code) {
+		this.message_code = message_code;
 	}
 }
