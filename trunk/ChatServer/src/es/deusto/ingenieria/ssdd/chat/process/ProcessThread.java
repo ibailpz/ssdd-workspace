@@ -37,8 +37,7 @@ public class ProcessThread extends Thread {
 					// TODO Send user list update
 				}
 			} else {
-				sendMessage("error_restart", this.message.getAddress()
-						.getHostAddress(), this.message.getPort());
+				errorRestart();
 			}
 		} else {
 			if (split[0].toLowerCase().equals("disconnect")) {
@@ -47,19 +46,25 @@ public class ProcessThread extends Thread {
 				switch (user.getState()) {
 				case 1:
 					if (split[0].toLowerCase().equals("send_invitation")) {
-						User user2 = users.get(split[2]);
-						if (user2 == null) {
-							sendMessage("error_restart", this.message
-									.getAddress().getHostAddress(),
-									this.message.getPort());
-						} else {
-
-						}
+						sendInvitation(split[2], user);
+					} else {
+						errorRestart();
 					}
+					break;
 				case 2:
 					if (split[0].toLowerCase().equals("cancel_invitation")) {
-
+						User user2 = users.get(split[2]);
+						if (user2 == null) {
+							errorRestart();
+						} else {
+							sendMessage("cancel_invitation " + user.getNick(),
+									user2.getIp(), user2.getPort());
+							user.setState(1);
+						}
+					} else {
+						errorRestart();
 					}
+					break;
 				case 3:
 					if (split[0].toLowerCase().equals("send_message")) {
 
@@ -67,9 +72,29 @@ public class ProcessThread extends Thread {
 
 					} else if (split[0].toLowerCase().equals("send_invitation")) {
 
+					} else {
+						errorRestart();
 					}
+					break;
 				}
 			}
+		}
+	}
+
+	private void errorRestart() {
+		sendMessage("error_restart",
+				this.message.getAddress().getHostAddress(),
+				this.message.getPort());
+	}
+
+	private void sendInvitation(String u2, User user) {
+		User user2 = users.get(u2);
+		if (user2 == null) {
+			errorRestart();
+		} else {
+			sendMessage("invitation " + user.getNick(), user2.getIp(),
+					user2.getPort());
+			user.setState(2);
 		}
 	}
 
