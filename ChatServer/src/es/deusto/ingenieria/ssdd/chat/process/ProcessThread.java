@@ -26,7 +26,9 @@ public class ProcessThread extends Thread {
 		if (user == null) {
 			if (split[0].toLowerCase().equals("connect")) {
 				if (users.containsKey(split[1])) {
-					sendMessage("error_nick " + split[1] + " in use");
+					sendMessage("error_nick " + split[1] + " in use",
+							this.message.getAddress().getHostAddress(),
+							this.message.getPort());
 				} else {
 					User u = new User(this.message.getAddress()
 							.getHostAddress(), this.message.getPort());
@@ -35,7 +37,8 @@ public class ProcessThread extends Thread {
 					// TODO Send user list update
 				}
 			} else {
-				sendMessage("error_restart");
+				sendMessage("error_restart", this.message.getAddress()
+						.getHostAddress(), this.message.getPort());
 			}
 		} else {
 			if (split[0].toLowerCase().equals("disconnect")) {
@@ -46,9 +49,11 @@ public class ProcessThread extends Thread {
 					if (split[0].toLowerCase().equals("send_invitation")) {
 						User user2 = users.get(split[2]);
 						if (user2 == null) {
-							sendMessage("error_restart");
+							sendMessage("error_restart", this.message
+									.getAddress().getHostAddress(),
+									this.message.getPort());
 						} else {
-							
+
 						}
 					}
 				case 2:
@@ -73,9 +78,9 @@ public class ProcessThread extends Thread {
 		// TODO Send user list update
 	}
 
-	private void sendMessage(String message) {
-		String serverIP = this.message.getAddress().getHostAddress();
-		int serverPort = this.message.getPort();
+	private void sendMessage(String message, String serverIP, int serverPort) {
+		// String serverIP = this.message.getAddress().getHostAddress();
+		// int serverPort = this.message.getPort();
 
 		try (DatagramSocket udpSocket = new DatagramSocket()) {
 			InetAddress serverHost = InetAddress.getByName(serverIP);
