@@ -5,6 +5,7 @@ public class User {
 	private int port;
 	private String nick;
 	private int state = 1;
+	private int lastState = 1;
 
 	public User(String ip, int port) {
 		this.ip = ip;
@@ -32,6 +33,7 @@ public class User {
 	}
 
 	public void setState(int state) {
+		lastState = this.state;
 		this.state = state;
 	}
 
@@ -41,5 +43,9 @@ public class User {
 
 	public int getPort() {
 		return port;
+	}
+
+	public void goBackState() {
+		this.state = lastState;
 	}
 }
