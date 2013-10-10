@@ -67,11 +67,28 @@ public class ProcessThread extends Thread {
 					break;
 				case 3:
 					if (split[0].toLowerCase().equals("send_message")) {
-
+						User user_other = users.get(split[2]);
+						if (user_other == null){
+							sendMessage("error_user", user.getIp(), user.getPort());
+							//TODO update user list
+						}
+						else{
+							String message = command.substring((split[0].length() + split[1].length() + split[2].length()+3));
+							sendMessage("receive_message "+user.getNick()+" "+message, user_other.getIp(), user_other.getPort());
+						}
+						
 					} else if (split[0].toLowerCase().equals("close_chat")) {
-
+						User user_other = users.get(split[2]);
+						if (user_other == null){
+							sendMessage("error_user", user.getIp(), user.getPort());
+							//TODO update user list
+						}
+						else{
+							sendMessage("close_chat "+user.getNick(), user_other.getIp(), user_other.getPort());
+						}
+											
 					} else if (split[0].toLowerCase().equals("send_invitation")) {
-
+						
 					} else {
 						errorRestart();
 					}
