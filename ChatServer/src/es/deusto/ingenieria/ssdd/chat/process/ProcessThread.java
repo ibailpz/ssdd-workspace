@@ -79,13 +79,7 @@ public class ProcessThread extends Thread {
 						
 					} else if (split[0].toLowerCase().equals("close_chat")) {
 						User user_other = users.get(split[2]);
-						if (user_other == null){
-							sendMessage("error_user", user.getIp(), user.getPort());
-							//TODO update user list
-						}
-						else{
-							sendMessage("close_chat "+user.getNick(), user_other.getIp(), user_other.getPort());
-						}
+						close_chat(user, user_other);
 											
 					} else if (split[0].toLowerCase().equals("send_invitation")) {
 						
@@ -95,6 +89,18 @@ public class ProcessThread extends Thread {
 					break;
 				}
 			}
+		}
+	}
+	
+	private void close_chat(User user, User user_other){
+		if (user_other == null){
+			sendMessage("error_user", user.getIp(), user.getPort());
+			//TODO update user list
+		}
+		else{
+			sendMessage("close_chat "+user.getNick(), user_other.getIp(), user_other.getPort());
+			users.get(user.getNick()).setState(1);
+			users.get(user_other.getNick()).setState(1);
 		}
 	}
 
