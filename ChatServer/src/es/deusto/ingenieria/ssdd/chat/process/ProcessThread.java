@@ -28,7 +28,8 @@ public class ProcessThread extends Thread {
 				if (users.containsKey(split[1])) {
 					sendMessage("error_nick " + split[1] + " in use");
 				} else {
-					User u = new User();
+					User u = new User(this.message.getAddress()
+							.getHostAddress(), this.message.getPort());
 					u.setNick(split[1]);
 					users.put(split[1], u);
 					// TODO Send user list update
@@ -43,7 +44,12 @@ public class ProcessThread extends Thread {
 				switch (user.getState()) {
 				case 1:
 					if (split[0].toLowerCase().equals("send_invitation")) {
-
+						User user2 = users.get(split[2]);
+						if (user2 == null) {
+							sendMessage("error_restart");
+						} else {
+							
+						}
 					}
 				case 2:
 					if (split[0].toLowerCase().equals("cancel_invitation")) {
