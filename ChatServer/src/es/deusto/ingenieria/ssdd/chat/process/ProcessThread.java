@@ -5,9 +5,13 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.HashMap;
+
+import es.deusto.ingenieria.ssdd.chat.data.User;
 
 public class ProcessThread extends Thread {
 
+	private static HashMap<String, User> users = new HashMap<>();
 	private DatagramPacket message;
 
 	public ProcessThread(DatagramPacket message) {
@@ -18,31 +22,49 @@ public class ProcessThread extends Thread {
 	public void run() {
 		String command = new String(message.getData());
 		String[] split = command.split(" ");
-		if (split[0].toLowerCase().equals("connect")) {
-			
-		} else if (split[0].toLowerCase().equals("disconnect")) {
+		User user = users.get(split[1]);
+		if (user == null) {
+			if (split[0].toLowerCase().equals("connect")) {
+				if (users.containsKey(split[1])) {
+					sendMessage("error_nick " + split[1] + " in use");
+				} else {
+					User u = new User();
+					u.setNick(split[1]);
+					users.put(split[1], u);
+					// TODO Send user list update
+				}
+			} else {
+				sendMessage("error_restart");
+			}
+		} else {
+			if (split[0].toLowerCase().equals("disconnect")) {
+				disconnect(user);
+			} else {
+				switch (user.getState()) {
+				case 1:
+					if (split[0].toLowerCase().equals("send_invitation")) {
 
-		} else if (split[0].toLowerCase().equals("send_invitation")) {
+					}
+				case 2:
+					if (split[0].toLowerCase().equals("cancel_invitation")) {
 
-		} else if (split[0].toLowerCase().equals("cancel_invitation")) {
+					}
+				case 3:
+					if (split[0].toLowerCase().equals("send_message")) {
 
-		} else if (split[0].toLowerCase().equals("send_message")) {
+					} else if (split[0].toLowerCase().equals("close_chat")) {
 
-		} else if (split[0].toLowerCase().equals("close_chat")) {
+					} else if (split[0].toLowerCase().equals("send_invitation")) {
 
-		} else if (split[0].toLowerCase().equals("connect")) {
-
-		} else if (split[0].toLowerCase().equals("connect")) {
-
-		} else if (split[0].toLowerCase().equals("connect")) {
-
-		} else if (split[0].toLowerCase().equals("connect")) {
-
-		} else if (split[0].toLowerCase().equals("connect")) {
-
-		} else if (split[0].toLowerCase().equals("connect")) {
-
+					}
+				}
+			}
 		}
+	}
+
+	private void disconnect(User u) {
+		users.remove(u.getNick());
+		// TODO Send user list update
 	}
 
 	private void sendMessage(String message) {

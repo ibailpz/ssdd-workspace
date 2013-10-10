@@ -2,7 +2,7 @@ package es.deusto.ingenieria.ssdd.chat.data;
 
 public class User {	
 	private String nick;
-	private int state;
+	private int state = 1;
 	
 	public String getNick() {
 		return nick;
