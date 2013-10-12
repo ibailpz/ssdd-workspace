@@ -208,24 +208,28 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
                     Integer.parseInt(this.txtFieldServerPort.getText()),
                     this.txtFieldNick.getText());
 		} else {
-			//Disconnect from the server
-//			if (this.controller.disconnect()) {
-				this.controller.disconnect();
-				this.txtFieldServerIP.setEditable(true);
-				this.txtFieldServerPort.setEditable(true);
-				this.txtFieldNick.setEditable(true);
-				this.listUsers.setEnabled(true);
-				this.listUsers.clearSelection();
-				this.btnConnect.setText("Connect");
-				this.btnSendMsg.setEnabled(false);
-				this.textAreaHistory.setText("");
-				this.textAreaSendMsg.setText("");
-				
-				this.setTitle("Chat main window - 'Disconnected'");
-//			} else {
-//				JOptionPane.showMessageDialog(this, "Disconnection from the server fails.", "Disconnection error", JOptionPane.ERROR_MESSAGE);				
-//			}
+			disconnect();
 		}
+	}
+	
+	private void disconnect() {
+		//Disconnect from the server
+//		if (this.controller.disconnect()) {
+			this.controller.disconnect();
+			this.txtFieldServerIP.setEditable(true);
+			this.txtFieldServerPort.setEditable(true);
+			this.txtFieldNick.setEditable(true);
+			this.listUsers.setEnabled(true);
+			this.listUsers.clearSelection();
+			this.btnConnect.setText("Connect");
+			this.btnSendMsg.setEnabled(false);
+			this.textAreaHistory.setText("");
+			this.textAreaSendMsg.setText("");
+			
+			this.setTitle("Chat main window - 'Disconnected'");
+//		} else {
+//			JOptionPane.showMessageDialog(this, "Disconnection from the server fails.", "Disconnection error", JOptionPane.ERROR_MESSAGE);				
+//		}
 	}
 	
 	private void selectUser() {
@@ -338,6 +342,10 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	@Override
 	public void onError(String error) {
 		// TODO Show error
+		if (error.equals("RESTART")) {
+			disconnect();
+			JOptionPane.showMessageDialog(this, "An error occurred in the server. Please connect again", "Critical error", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 
 	@Override
@@ -357,6 +365,11 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	@Override
 	public void onChatInvitationReceived(String user) {
 		// TODO Display chat invitation dialog
+	}
+
+	@Override
+	public void onInvitationCancelled() {
+		// TODO Cancel invitation dialog
 	}
 
 //	@Override

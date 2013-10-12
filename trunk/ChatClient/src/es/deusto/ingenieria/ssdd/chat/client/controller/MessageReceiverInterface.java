@@ -17,5 +17,7 @@ public interface MessageReceiverInterface {
 	public void onChatDisconnect(String user);
 	
 	public void onChatInvitationReceived(String user);
+	
+	public void onInvitationCancelled();
 
 }

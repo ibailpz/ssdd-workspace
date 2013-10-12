@@ -81,7 +81,7 @@ public class ChatClientController {
 		} else if (split[0].equals("cancel_invitation")) {
 			// TODO
 		} else if (split[0].equals("error_restart")) {
-			// TODO
+			this.observable.onError("RESTART");
 		}
 	}
 
