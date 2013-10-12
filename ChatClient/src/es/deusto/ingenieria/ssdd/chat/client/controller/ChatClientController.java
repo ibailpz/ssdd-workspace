@@ -5,8 +5,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
 
 import es.deusto.ingenieria.ssdd.chat.data.User;
 
@@ -151,7 +149,7 @@ public class ChatClientController {
 		String message = "Received message";
 
 		// Notify the received message to the GUI
-		this.observable.onMessageReceived(message);
+		this.observable.onMessageReceived(message, chatReceiver.getNick());
 	}
 
 	public void sendChatRequest(String to) {
@@ -196,7 +194,7 @@ public class ChatClientController {
 		String message = "Chat request details";
 
 		// Notify the chat request details to the GUI
-		this.observable.onChatDisconnect();
+		this.observable.onChatDisconnect(message);
 	}
 
 	private void sendCommand(String command) throws IOException {
