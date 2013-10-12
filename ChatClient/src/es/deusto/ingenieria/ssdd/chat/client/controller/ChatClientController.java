@@ -61,8 +61,27 @@ public class ChatClientController {
 	private void processRequest(DatagramPacket request) {
 		String message = new String(request.getData());
 		String[] split = message.split(" ");
-		if (split[0].equals("")) {
-			
+		if (split[0].equals("receive_message")) {
+			receiveMessage(message.substring(split[0].length()
+					+ split[1].length() + 2));
+		} else if (split[0].equals("invitation")) {
+			receiveChatRequest(split[1]);
+		} else if (split[0].equals("update_users")) {
+			// TODO Split por || , crear lista y llamar a metodo en observer
+		} else if (split[0].equals("close_chat")) {
+			receiveChatClosure();
+		} else if (split[0].equals("accept")) {
+			acceptChatRequest();
+		} else if (split[0].equals("busy")) {
+			refuseChatRequest();
+		} else if (split[0].equals("error_nick")) {
+			// TODO	
+		} else if (split[0].equals("error_user")) {
+			// TODO
+		} else if (split[0].equals("cancel_invitation")) {
+			// TODO
+		} else if (split[0].equals("error_restart")) {
+			// TODO
 		}
 	}
 
@@ -128,26 +147,21 @@ public class ChatClientController {
 		this.chatReceiver = null;
 	}
 
-//	public List<String> getConnectedUsers() {
-//		List<String> connectedUsers = new ArrayList<>();
-//
-//		// ENTER YOUR CODE TO OBTAIN THE LIST OF CONNECTED USERS
-//		connectedUsers.add("Default");
-//
-//		return connectedUsers;
-//	}
+	// public List<String> getConnectedUsers() {
+	// List<String> connectedUsers = new ArrayList<>();
+	//
+	// // ENTER YOUR CODE TO OBTAIN THE LIST OF CONNECTED USERS
+	// connectedUsers.add("Default");
+	//
+	// return connectedUsers;
+	// }
 
 	public void sendMessage(String message) throws IOException {
 		sendCommand("");
 		// ENTER YOUR CODE TO SEND A MESSAGE
 	}
 
-	public void receiveMessage() {
-
-		// ENTER YOUR CODE TO RECEIVE A MESSAGE
-
-		String message = "Received message";
-
+	public void receiveMessage(String message) {
 		// Notify the received message to the GUI
 		this.observable.onMessageReceived(message, chatReceiver.getNick());
 	}
@@ -160,14 +174,9 @@ public class ChatClientController {
 		this.chatReceiver.setNick(to);
 	}
 
-	public void receiveChatRequest() {
-
-		// ENTER YOUR CODE TO RECEIVE A CHAT REQUEST
-
-		String message = "Chat request details";
-
+	public void receiveChatRequest(String user) {
 		// Notify the chat request details to the GUI
-		this.observable.onChatInvitationReceived(message);
+		this.observable.onChatInvitationReceived(user);
 	}
 
 	public void acceptChatRequest() {
