@@ -5,12 +5,11 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.Observable;
-import java.util.Observer;
 
 import javax.swing.DefaultListModel;
 import javax.swing.GroupLayout;
@@ -38,9 +37,9 @@ import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
 import es.deusto.ingenieria.ssdd.chat.client.controller.ChatClientController;
-import es.deusto.ingenieria.ssdd.chat.data.Message;
+import es.deusto.ingenieria.ssdd.chat.client.controller.MessageReceiverInterface;
 
-public class JFrameMainWindow extends JFrame implements Observer {
+public class JFrameMainWindow extends JFrame implements MessageReceiverInterface {
 
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
@@ -205,40 +204,13 @@ public class JFrameMainWindow extends JFrame implements Observer {
 			}
 			
 			//Connect to the server
-			if (this.controller.connect(this.txtFieldServerIP.getText(),
-					                    Integer.parseInt(this.txtFieldServerPort.getText()),
-					                    this.txtFieldNick.getText())) {
-				
-				//Obtain the list of connected Users
-				List<String> connectedUsers = this.controller.getConnectedUsers();
-				
-				if (!connectedUsers.isEmpty()) {
-					DefaultListModel<String> listModel = new DefaultListModel<>();
-					
-					for (String user : connectedUsers) {
-						listModel.addElement(user);
-					}
-					
-					this.listUsers.setModel(listModel);
-					
-					this.txtFieldServerIP.setEditable(false);
-					this.txtFieldServerPort.setEditable(false);
-					this.txtFieldNick.setEditable(false);
-					this.btnConnect.setText("Disconnect");
-					this.btnSendMsg.setEnabled(true);
-					this.textAreaHistory.setText("");
-					this.textAreaSendMsg.setText("");
-					
-					this.setTitle("Chat main window - 'Connected'");
-				} else {
-					JOptionPane.showMessageDialog(this, "No clients are connected.", "Chat initialization error", JOptionPane.WARNING_MESSAGE);					
-				}			
-			} else {
-				JOptionPane.showMessageDialog(this, "Can't connect to the server.", "Connection error", JOptionPane.ERROR_MESSAGE);
-			}
+			this.controller.connect(this.txtFieldServerIP.getText(),
+                    Integer.parseInt(this.txtFieldServerPort.getText()),
+                    this.txtFieldNick.getText());
 		} else {
 			//Disconnect from the server
-			if (this.controller.disconnect()) {
+//			if (this.controller.disconnect()) {
+				this.controller.disconnect();
 				this.txtFieldServerIP.setEditable(true);
 				this.txtFieldServerPort.setEditable(true);
 				this.txtFieldNick.setEditable(true);
@@ -250,9 +222,9 @@ public class JFrameMainWindow extends JFrame implements Observer {
 				this.textAreaSendMsg.setText("");
 				
 				this.setTitle("Chat main window - 'Disconnected'");
-			} else {
-				JOptionPane.showMessageDialog(this, "Disconnection from the server fails.", "Disconnection error", JOptionPane.ERROR_MESSAGE);				
-			}
+//			} else {
+//				JOptionPane.showMessageDialog(this, "Disconnection from the server fails.", "Disconnection error", JOptionPane.ERROR_MESSAGE);				
+//			}
 		}
 	}
 	
@@ -262,9 +234,9 @@ public class JFrameMainWindow extends JFrame implements Observer {
 			if (!this.controller.isChatSessionOpened()) {			
 				int result = JOptionPane.showConfirmDialog(this, "Do you want to start a new chat session with '" + this.listUsers.getSelectedValue() + "'", "Open chat Session", JOptionPane.YES_NO_OPTION);
 
-				if (result == JOptionPane.OK_OPTION && this.controller.sendChatRequest(this.listUsers.getSelectedValue())) {
-					//this.listUsers.clearSelection();
-					this.setTitle("Chat session between '" + this.controller.getConnectedUser() + "' & '" + this.listUsers.getSelectedValue() + "'");
+				if (result == JOptionPane.OK_OPTION) {
+					this.controller.sendChatRequest(this.listUsers.getSelectedValue());
+					// TODO Display waiting dialog
 				} else {
 					this.listUsers.clearSelection();
 				}
@@ -272,9 +244,11 @@ public class JFrameMainWindow extends JFrame implements Observer {
 			} else if (this.controller.isChatSessionOpened() && this.listUsers.getSelectedValue().equals(this.controller.getChatReceiver())) {			
 				int result = JOptionPane.showConfirmDialog(this, "Do you want to close your current chat session with '" + this.controller.getChatReceiver() + "'", "Close chat Session", JOptionPane.YES_NO_OPTION);				
 
-				if (result == JOptionPane.OK_OPTION && this.controller.sendChatClosure()) {
+				if (result == JOptionPane.OK_OPTION) {
+					this.controller.sendChatClosure();
 					this.listUsers.clearSelection();					
 					this.setTitle("Chat main window - 'Connected'");
+					// TODO Display waiting dialog
 				}
 			}
 		}
@@ -290,11 +264,11 @@ public class JFrameMainWindow extends JFrame implements Observer {
 			}			
 			
 			String message = this.textAreaSendMsg.getText().trim();
-			
-			if (this.controller.sendMessage(message)) {
+			try {
+				this.controller.sendMessage(message);
 				this.appendSentMessageToHistory();
 				this.textAreaSendMsg.setText("");
-			} else {
+			} catch(IOException ex) {
 				JOptionPane.showMessageDialog(this, "Message can't be delivered.", "Error sending a message", JOptionPane.ERROR_MESSAGE);				
 			}
 		}
@@ -329,18 +303,75 @@ public class JFrameMainWindow extends JFrame implements Observer {
 	}
 
 	@Override
-	public void update(Observable observable, Object object) {
-		
-		//Update this method to process the request received from other users
-		
-		if (this.controller.isConnected()) {			
-			if (object.getClass().getName().equals(Message.class.getName())) {
-				Message newMessage = (Message) object;
+	public void onMessageReceived(String message, String user) {
+		appendReceivedMessageToHistory(message, user, System.currentTimeMillis());
+	}
+
+	@Override
+	public void onConnect(boolean connected) {
+		if (connected) {
+			this.txtFieldServerIP.setEditable(false);
+			this.txtFieldServerPort.setEditable(false);
+			this.txtFieldNick.setEditable(false);
+			this.btnConnect.setText("Disconnect");
+			this.btnSendMsg.setEnabled(true);
+			this.textAreaHistory.setText("");
+			this.textAreaSendMsg.setText("");
 			
-				if (newMessage.getTo().getNick() == this.controller.getConnectedUser()) {
-					this.appendReceivedMessageToHistory(newMessage.getText(), newMessage.getFrom().getNick(), newMessage.getTimestamp());
-				}
-			}
+			this.setTitle("Chat main window - 'Connected'");
+		} else {
+			JOptionPane.showMessageDialog(this, "Can't connect to the server.", "Connection error", JOptionPane.ERROR_MESSAGE);
 		}
-	}	
+	}
+
+	@Override
+	public void onUsersUpdated(List<String> users) {
+		DefaultListModel<String> listModel = new DefaultListModel<>();
+		
+		for (String user : users) {
+			listModel.addElement(user);
+		}
+		
+		this.listUsers.setModel(listModel);
+	}
+
+	@Override
+	public void onError(String error) {
+		// TODO Show error
+	}
+
+	@Override
+	public void onChatRequestResponse(String user, boolean accept) {
+		if (accept) {
+			this.setTitle("Chat session between '" + this.controller.getConnectedUser() + "' & '" + user + "'");
+		} else {
+			// TODO Display request denied
+		}
+	}
+
+	@Override
+	public void onChatDisconnect(String user) {
+		// TODO Display chat disconnected dialog
+	}
+
+	@Override
+	public void onChatInvitationReceived(String user) {
+		// TODO Display chat invitation dialog
+	}
+
+//	@Override
+//	public void update(Observable observable, Object object) {
+//		
+//		//Update this method to process the request received from other users
+//		
+//		if (this.controller.isConnected()) {			
+//			if (object.getClass().getName().equals(Message.class.getName())) {
+//				Message newMessage = (Message) object;
+//			
+//				if (newMessage.getTo().getNick() == this.controller.getConnectedUser()) {
+//					this.appendReceivedMessageToHistory(newMessage.getText(), newMessage.getFrom().getNick(), newMessage.getTimestamp());
+//				}
+//			}
+//		}
+//	}	
 }
