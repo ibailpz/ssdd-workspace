@@ -18,6 +18,6 @@ public interface MessageReceiverInterface {
 	
 	public void onChatInvitationReceived(String user);
 	
-	public void onInvitationCancelled();
+	public void onInvitationCancelled(String user);
 
 }

@@ -15,6 +15,7 @@ import javax.swing.DefaultListModel;
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.Alignment;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -52,6 +53,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	private JTextArea textAreaSendMsg;
 	private JButton btnSendMsg;
 	private SimpleDateFormat textFormatter = new SimpleDateFormat("HH:mm:ss");
+	private JOptionPane waitingInvitationPane;
 	
 	private ChatClientController controller;	
 
@@ -204,9 +206,14 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 			}
 			
 			//Connect to the server
-			this.controller.connect(this.txtFieldServerIP.getText(),
-                    Integer.parseInt(this.txtFieldServerPort.getText()),
-                    this.txtFieldNick.getText());
+			try {
+				this.controller.connect(this.txtFieldServerIP.getText(),
+				        Integer.parseInt(this.txtFieldServerPort.getText()),
+				        this.txtFieldNick.getText());
+			} catch (IOException e) {
+				e.printStackTrace();
+				JOptionPane.showMessageDialog(this, "Connection cannot be established. Try again later", "Error connecting", JOptionPane.ERROR_MESSAGE);
+			}
 		} else {
 			disconnect();
 		}
@@ -239,8 +246,29 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 				int result = JOptionPane.showConfirmDialog(this, "Do you want to start a new chat session with '" + this.listUsers.getSelectedValue() + "'", "Open chat Session", JOptionPane.YES_NO_OPTION);
 
 				if (result == JOptionPane.OK_OPTION) {
+					waitingInvitationPane = new JOptionPane("Waiting invitation answer from "
+							+ this.listUsers.getSelectedValue() + "...", JOptionPane.PLAIN_MESSAGE,
+							JOptionPane.DEFAULT_OPTION, null, new String[]{"Cancel"});
+					final JDialog dialog = new JDialog(this, 
+                            "Waiting answer",
+                            true);
+					dialog.setContentPane(waitingInvitationPane);
+					dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+					
 					this.controller.sendChatRequest(this.listUsers.getSelectedValue());
-					// TODO Display waiting dialog
+					
+					dialog.pack();
+					dialog.setVisible(true);
+					
+					int value = ((Integer)waitingInvitationPane.getValue()).intValue();
+					if (value == 0) {
+						try {
+							controller.cancelInvitation(listUsers.getSelectedValue());
+						} catch (IOException e) {
+							e.printStackTrace();
+							JOptionPane.showMessageDialog(this, "Chat cannot be started. Try again later", "Error sending chat request", JOptionPane.ERROR_MESSAGE);
+						}
+					}
 				} else {
 					this.listUsers.clearSelection();
 				}
@@ -252,7 +280,6 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 					this.controller.sendChatClosure();
 					this.listUsers.clearSelection();					
 					this.setTitle("Chat main window - 'Connected'");
-					// TODO Display waiting dialog
 				}
 			}
 		}
@@ -273,7 +300,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 				this.appendSentMessageToHistory();
 				this.textAreaSendMsg.setText("");
 			} catch(IOException ex) {
-				JOptionPane.showMessageDialog(this, "Message can't be delivered.", "Error sending a message", JOptionPane.ERROR_MESSAGE);				
+				JOptionPane.showMessageDialog(this, "Message can't be delivered. Try again later", "Error sending a message", JOptionPane.ERROR_MESSAGE);				
 			}
 		}
 	}
@@ -341,7 +368,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 
 	@Override
 	public void onError(String error) {
-		// TODO Show error
+		// TODO Show errors
 		if (error.equals("RESTART")) {
 			disconnect();
 			JOptionPane.showMessageDialog(this, "An error occurred in the server. Please connect again", "Critical error", JOptionPane.ERROR_MESSAGE);
@@ -353,7 +380,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 		if (accept) {
 			this.setTitle("Chat session between '" + this.controller.getConnectedUser() + "' & '" + user + "'");
 		} else {
-			// TODO Display request denied
+			JOptionPane.showMessageDialog(this, user + " refused the invitation to start a chat", "Invitation refused", JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
 
@@ -364,12 +391,27 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 
 	@Override
 	public void onChatInvitationReceived(String user) {
-		// TODO Display chat invitation dialog
+		int op = JOptionPane.showConfirmDialog(this, "Would you like to start a chat session with " + user + "?", "Start new chat session", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+		try {
+			if (op == JOptionPane.CLOSED_OPTION || op == JOptionPane.NO_OPTION) {
+				this.controller.refuseChatRequest(user);
+			} else {
+				this.controller.acceptChatRequest(user);
+				this.setTitle("Chat session between '" + this.controller.getConnectedUser() + "' & '" + user + "'");
+			}
+		} catch(IOException ex) {
+			ex.printStackTrace();
+			JOptionPane.showMessageDialog(this, "Error connecting to the server. Try again later", "Connection error", JOptionPane.ERROR_MESSAGE);
+		}
 	}
 
 	@Override
-	public void onInvitationCancelled() {
-		// TODO Cancel invitation dialog
+	public void onInvitationCancelled(String user) {
+		if (waitingInvitationPane != null) {
+			waitingInvitationPane.setVisible(false);
+			waitingInvitationPane = null;
+			JOptionPane.showMessageDialog(this, user + " cancelled the invitation to start a chat", "Invitation cancelled", JOptionPane.INFORMATION_MESSAGE);
+		}
 	}
 
 //	@Override

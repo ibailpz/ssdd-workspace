@@ -71,15 +71,15 @@ public class ChatClientController {
 		} else if (split[0].equals("close_chat")) {
 			receiveChatClosure();
 		} else if (split[0].equals("accept")) {
-			acceptChatRequest();
+			this.observable.onChatRequestResponse(split[1], true);
 		} else if (split[0].equals("busy")) {
-			refuseChatRequest();
+			this.observable.onChatRequestResponse(split[1], false);
 		} else if (split[0].equals("error_nick")) {
-			// TODO	
+			// TODO
 		} else if (split[0].equals("error_user")) {
 			// TODO
 		} else if (split[0].equals("cancel_invitation")) {
-			// TODO
+			this.observable.onInvitationCancelled(split[1]);
 		} else if (split[0].equals("error_restart")) {
 			this.observable.onError("RESTART");
 		}
@@ -125,14 +125,12 @@ public class ChatClientController {
 		this.observable = null;
 	}
 
-	public void connect(String ip, int port, String nick) {
-
-		// ENTER YOUR CODE TO CONNECT
-
+	public void connect(String ip, int port, String nick) throws IOException {
 		this.connectedUser = new User();
 		this.connectedUser.setNick(nick);
 		this.serverIP = ip;
 		this.serverPort = port;
+		sendCommand("connect " + nick);
 	}
 
 	public void disconnect() {
@@ -140,7 +138,6 @@ public class ChatClientController {
 			sendCommand("disconnect " + connectedUser.getNick());
 		} catch (IOException e) {
 			e.printStackTrace();
-			// TODO Display error message
 		}
 
 		this.connectedUser = null;
@@ -157,8 +154,8 @@ public class ChatClientController {
 	// }
 
 	public void sendMessage(String message) throws IOException {
-		sendCommand("");
-		// ENTER YOUR CODE TO SEND A MESSAGE
+		sendCommand("send_message " + connectedUser.getNick() + " "
+				+ chatReceiver.getNick() + " " + message);
 	}
 
 	public void receiveMessage(String message) {
@@ -179,14 +176,17 @@ public class ChatClientController {
 		this.observable.onChatInvitationReceived(user);
 	}
 
-	public void acceptChatRequest() {
-
-		// ENTER YOUR CODE TO ACCEPT A CHAT REQUEST
+	public void cancelInvitation(String otherUser) throws IOException {
+		sendCommand("cancel_invitation " + connectedUser.getNick() + " "
+				+ otherUser);
 	}
 
-	public void refuseChatRequest() {
+	public void acceptChatRequest(String user) throws IOException {
+		sendCommand("accept " + connectedUser.getNick() + " " + user);
+	}
 
-		// ENTER YOUR CODE TO REFUSE A CHAT REQUEST
+	public void refuseChatRequest(String user) throws IOException {
+		sendCommand("busy " + connectedUser.getNick() + " " + user);
 	}
 
 	public void sendChatClosure() {
