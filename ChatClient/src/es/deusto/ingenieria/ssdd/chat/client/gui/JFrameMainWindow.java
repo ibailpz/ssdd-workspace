@@ -5,6 +5,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -192,7 +194,18 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 		
 		JScrollPane scrollPaneNewMsg = new JScrollPane(textAreaSendMsg);
 		scrollPaneNewMsg.setViewportBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		panelSendMsg.add(scrollPaneNewMsg, BorderLayout.CENTER);		
+		panelSendMsg.add(scrollPaneNewMsg, BorderLayout.CENTER);	
+		
+		this.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				super.windowClosing(e);
+				if (JFrameMainWindow.this.controller.isChatSessionOpened()) {
+					JFrameMainWindow.this.controller.sendChatClosure();
+				}
+				disconnect();
+			}
+		});
 	}
 	
 	private void btnConnectClick() {
@@ -255,10 +268,16 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 					dialog.setContentPane(waitingInvitationPane);
 					dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
 					
-					this.controller.sendChatRequest(this.listUsers.getSelectedValue());
+					try {
+						this.controller.sendChatRequest(this.listUsers.getSelectedValue());
 					
-					dialog.pack();
-					dialog.setVisible(true);
+						dialog.pack();
+						dialog.setVisible(true);
+					} catch (IOException e1) {
+						e1.printStackTrace();
+						dialog.setVisible(false);
+						JOptionPane.showMessageDialog(this, "Chat cannot be started. Try again later", "Error sending chat request", JOptionPane.ERROR_MESSAGE);
+					}
 					
 					int value = ((Integer)waitingInvitationPane.getValue()).intValue();
 					if (value == 0) {
@@ -266,7 +285,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 							controller.cancelInvitation(listUsers.getSelectedValue());
 						} catch (IOException e) {
 							e.printStackTrace();
-							JOptionPane.showMessageDialog(this, "Chat cannot be started. Try again later", "Error sending chat request", JOptionPane.ERROR_MESSAGE);
+							//JOptionPane.showMessageDialog(this, "Chat cannot be started. Try again later", "Error sending chat request", JOptionPane.ERROR_MESSAGE);
 						}
 					}
 				} else {
@@ -391,7 +410,9 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 
 	@Override
 	public void onChatDisconnect(String user) {
-		// TODO Display chat disconnected dialog
+		JOptionPane.showMessageDialog(this, user + " closed the chat session", "Chat closed", JOptionPane.WARNING_MESSAGE);
+		this.listUsers.clearSelection();					
+		this.setTitle("Chat main window - 'Connected'");
 	}
 
 	@Override
