@@ -372,6 +372,11 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 		if (error.equals("RESTART")) {
 			disconnect();
 			JOptionPane.showMessageDialog(this, "An error occurred in the server. Please connect again", "Critical error", JOptionPane.ERROR_MESSAGE);
+		} else if(error.equals("ERROR nick")){
+			disconnect();
+			JOptionPane.showMessageDialog(this, "Nick in use. Please introduce another one.", "Nick error", JOptionPane.ERROR_MESSAGE);
+		}else if (error.equals("ERROR user")){
+			JOptionPane.showMessageDialog(this, "user is not connected. Please select another user.", "User error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
