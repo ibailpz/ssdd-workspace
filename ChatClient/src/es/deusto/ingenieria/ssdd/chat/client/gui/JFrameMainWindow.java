@@ -70,7 +70,6 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 		setResizable(false);
 		setType(Type.UTILITY);
 		setTitle("Chat main window");
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 800, 600);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
@@ -199,7 +198,6 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 		this.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
-				super.windowClosing(e);
 				if (JFrameMainWindow.this.controller.isChatSessionOpened()) {
 					try {
 						JFrameMainWindow.this.controller.sendChatClosure();
@@ -207,9 +205,13 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 						e1.printStackTrace();						
 					}
 				}
-				disconnect();
+				if (JFrameMainWindow.this.controller.isConnected()){
+					disconnect();	
+				}				
+				super.windowClosing(e);
 			}
 		});
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 	
 	private void btnConnectClick() {

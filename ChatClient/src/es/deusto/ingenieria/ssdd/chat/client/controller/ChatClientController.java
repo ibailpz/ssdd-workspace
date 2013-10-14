@@ -76,6 +76,7 @@ public class ChatClientController {
 				users.add(splitUsers[i]);
 			}
 			this.observable.onUsersUpdated(users);
+			this.observable.onConnect(true);
 		} else if (split[0].equals("close_chat")) {
 			receiveChatClosure();
 		} else if (split[0].equals("accept")) {
