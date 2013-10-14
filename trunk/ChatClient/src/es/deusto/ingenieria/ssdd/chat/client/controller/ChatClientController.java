@@ -1,5 +1,6 @@
 package es.deusto.ingenieria.ssdd.chat.client.controller;
 
+import java.util.List;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -58,16 +59,23 @@ public class ChatClientController {
 		}, "ReceivingThread");
 	}
 
+	@SuppressWarnings("null")
 	private void processRequest(DatagramPacket request) {
 		String message = new String(request.getData());
 		String[] split = message.split(" ");
+		
 		if (split[0].equals("receive_message")) {
 			receiveMessage(message.substring(split[0].length()
 					+ split[1].length() + 2));
 		} else if (split[0].equals("invitation")) {
 			receiveChatRequest(split[1]);
 		} else if (split[0].equals("update_users")) {
-			// TODO Split por || , crear lista y llamar a metodo en observer
+			String[] splitUsers = split[1].split("||");
+			List<String> users = null;
+			for (int i=0; i<splitUsers.length; i++){
+				users.add(splitUsers[i]);
+			}
+			this.observable.onUsersUpdated(users);
 		} else if (split[0].equals("close_chat")) {
 			receiveChatClosure();
 		} else if (split[0].equals("accept")) {
@@ -75,9 +83,9 @@ public class ChatClientController {
 		} else if (split[0].equals("busy")) {
 			this.observable.onChatRequestResponse(split[1], false);
 		} else if (split[0].equals("error_nick")) {
-			// TODO
+			this.observable.onError("ERROR nick");
 		} else if (split[0].equals("error_user")) {
-			// TODO
+			this.observable.onError("ERROR user");
 		} else if (split[0].equals("cancel_invitation")) {
 			this.observable.onInvitationCancelled(split[1]);
 		} else if (split[0].equals("error_restart")) {
