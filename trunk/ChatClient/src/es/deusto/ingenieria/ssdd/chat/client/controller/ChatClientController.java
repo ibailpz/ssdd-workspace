@@ -79,6 +79,8 @@ public class ChatClientController {
 		} else if (split[0].equals("close_chat")) {
 			receiveChatClosure();
 		} else if (split[0].equals("accept")) {
+			this.chatReceiver = new User();
+			this.chatReceiver.setNick(split[1]);
 			this.observable.onChatRequestResponse(split[1], true);
 		} else if (split[0].equals("busy")) {
 			this.observable.onChatRequestResponse(split[1], false);
@@ -171,12 +173,8 @@ public class ChatClientController {
 		this.observable.onMessageReceived(message, chatReceiver.getNick());
 	}
 
-	public void sendChatRequest(String to) {
-
-		// ENTER YOUR CODE TO SEND A CHAT REQUEST
-
-		this.chatReceiver = new User();
-		this.chatReceiver.setNick(to);
+	public void sendChatRequest(String to) throws IOException {		
+		sendCommand("send_invitation " + connectedUser.getNick() + " " + to);
 	}
 
 	public void receiveChatRequest(String user) {
