@@ -201,7 +201,11 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 			public void windowClosing(WindowEvent e) {
 				super.windowClosing(e);
 				if (JFrameMainWindow.this.controller.isChatSessionOpened()) {
-					JFrameMainWindow.this.controller.sendChatClosure();
+					try {
+						JFrameMainWindow.this.controller.sendChatClosure();
+					} catch (IOException e1) {
+						e1.printStackTrace();						
+					}
 				}
 				disconnect();
 			}
@@ -296,7 +300,11 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 				int result = JOptionPane.showConfirmDialog(this, "Do you want to close your current chat session with '" + this.controller.getChatReceiver() + "'", "Close chat Session", JOptionPane.YES_NO_OPTION);				
 
 				if (result == JOptionPane.OK_OPTION) {
-					this.controller.sendChatClosure();
+					try {
+						this.controller.sendChatClosure();
+					} catch (IOException e) {
+						e.printStackTrace();						
+					}
 					this.listUsers.clearSelection();					
 					this.setTitle("Chat main window - 'Connected'");
 				}
