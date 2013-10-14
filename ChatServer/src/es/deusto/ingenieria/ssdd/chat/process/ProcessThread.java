@@ -22,6 +22,7 @@ public class ProcessThread extends Thread {
 	@Override
 	public void run() {
 		String command = new String(message.getData());
+		command = command.trim();
 		String[] split = command.split(" ");
 		User user = users.get(split[1]);
 
@@ -157,10 +158,11 @@ public class ProcessThread extends Thread {
 			for (int i = 0; i < userNames.size(); i++) {
 				sb.append(userNames.get(i)).append("||");
 			}
-			sendMessage(
-					"update_users "
-							+ sb.toString().substring(0, sb.length() - 2),
-					u.getIp(), u.getPort());
+			String users = sb.toString();
+			if (sb.length() > 2) {
+				users = sb.toString().substring(0, sb.length() - 2);
+			}
+			sendMessage("update_users " + users, u.getIp(), u.getPort());
 			userNames.add(u.getNick());
 		}
 	}
