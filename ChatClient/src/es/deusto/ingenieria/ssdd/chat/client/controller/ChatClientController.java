@@ -1,5 +1,6 @@
 package es.deusto.ingenieria.ssdd.chat.client.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -59,7 +60,6 @@ public class ChatClientController {
 		}, "ReceivingThread");
 	}
 
-	@SuppressWarnings("null")
 	private void processRequest(DatagramPacket request) {
 		String message = new String(request.getData());
 		String[] split = message.split(" ");
@@ -71,7 +71,7 @@ public class ChatClientController {
 			receiveChatRequest(split[1]);
 		} else if (split[0].equals("update_users")) {
 			String[] splitUsers = split[1].split("||");
-			List<String> users = null;
+			List<String> users = new ArrayList<>();
 			for (int i=0; i<splitUsers.length; i++){
 				users.add(splitUsers[i]);
 			}
