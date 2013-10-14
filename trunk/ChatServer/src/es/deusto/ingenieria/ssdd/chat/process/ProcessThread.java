@@ -28,22 +28,26 @@ public class ProcessThread extends Thread {
 
 		if (user == null) {
 			if (split[0].toLowerCase().equals("connect")) {
-				if (users.containsKey(split[1])) {
-					sendMessage("error_nick " + split[1] + " in use",
-							this.message.getAddress().getHostAddress(),
-							this.message.getPort());
-				} else {
+//				if (users.containsKey(split[1])) {
+//					sendMessage("error_nick " + split[1] + " in use",
+//							this.message.getAddress().getHostAddress(),
+//							Integer.parseInt(split[2]));
+//				} else {
 					User u = new User(this.message.getAddress()
-							.getHostAddress(), this.message.getPort());
+							.getHostAddress(), Integer.parseInt(split[2]));
 					u.setNick(split[1]);
 					users.put(split[1], u);
 					updateUserList();
-				}
+//				}
 			} else {
 				errorRestart(user);
 			}
 		} else {
-			if (split[0].toLowerCase().equals("accept")) {
+			if (split[0].toLowerCase().equals("connect")) {
+				sendMessage("error_nick " + split[1] + " in use",
+				this.message.getAddress().getHostAddress(),
+				Integer.parseInt(split[2]));
+			} else if (split[0].toLowerCase().equals("accept")) {
 				User userOther = users.get(split[2]);
 				if (userOther == null) {
 					sendMessage("error_user", user.getIp(), user.getPort());
@@ -69,6 +73,7 @@ public class ProcessThread extends Thread {
 				case 1:
 					if (split[0].toLowerCase().equals("disconnect")) {
 						users.remove(user.getNick());
+						updateUserList();
 					} else if (split[0].toLowerCase().equals("send_invitation")) {
 						sendInvitation(split[2], user);
 					} else {
@@ -131,17 +136,15 @@ public class ProcessThread extends Thread {
 	}
 
 	private void errorRestart(User user) {
-		sendMessage("error_restart",
-				this.message.getAddress().getHostAddress(),
-				this.message.getPort());
+		sendMessage("error_restart", user.getIp(), user.getPort());
 		user.setState(1);
 	}
 
 	private void sendInvitation(String u2, User user) {
 		User userOther = users.get(u2);
 		if (userOther == null) {
-			sendMessage("error_user " + u2 + " does not exist", this.message
-					.getAddress().getHostAddress(), this.message.getPort());
+			sendMessage("error_user " + u2 + " does not exist", user.getIp(),
+					user.getPort());
 			updateUserList();
 		} else {
 			sendMessage("invitation " + user.getNick(), userOther.getIp(),
@@ -154,32 +157,34 @@ public class ProcessThread extends Thread {
 		ArrayList<String> userNames = new ArrayList<>(users.keySet());
 		for (User u : users.values()) {
 			StringBuilder sb = new StringBuilder();
-			userNames.remove(u.getNick());
+//			userNames.remove(u.getNick());
 			for (int i = 0; i < userNames.size(); i++) {
-				sb.append(userNames.get(i)).append("||");
+				if (!userNames.get(i).equals(u.getNick())) {
+					sb.append(userNames.get(i)).append("||");
+				}
 			}
 			String users = sb.toString();
 			if (sb.length() > 2) {
 				users = sb.toString().substring(0, sb.length() - 2);
 			}
 			sendMessage("update_users " + users, u.getIp(), u.getPort());
-			userNames.add(u.getNick());
+//			userNames.add(u.getNick());
 		}
 	}
 
-	private void sendMessage(String message, String serverIP, int serverPort) {
+	private void sendMessage(String message, String serverIP, int port) {
 		// String serverIP = this.message.getAddress().getHostAddress();
 		// int serverPort = this.message.getPort();
 
 		try (DatagramSocket udpSocket = new DatagramSocket()) {
-			InetAddress serverHost = InetAddress.getByName(serverIP);
+			InetAddress host = InetAddress.getByName(serverIP);
 			byte[] byteMsg = message.getBytes();
 			DatagramPacket request = new DatagramPacket(byteMsg,
-					byteMsg.length, serverHost, serverPort);
+					byteMsg.length, host, port);
 			udpSocket.send(request);
-			System.out.println(" - Sent a request to '"
-					+ serverHost.getHostAddress() + ":" + request.getPort()
-					+ "' -> " + new String(request.getData()));
+			System.out.println(" - Sent a request to '" + host.getHostAddress()
+					+ ":" + request.getPort() + "' -> "
+					+ new String(request.getData()));
 
 			byte[] buffer = new byte[1024];
 			DatagramPacket reply = new DatagramPacket(buffer, buffer.length);

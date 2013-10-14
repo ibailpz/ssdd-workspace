@@ -19,8 +19,7 @@ public class MainProgram {
 				DatagramPacket request = null;
 				byte[] buffer = new byte[1024];
 
-				System.out.println(" - Waiting for connections '"
-						+ udpSocket.getLocalAddress().getHostAddress() + ":"
+				System.out.println(" - Waiting for connections on port '"
 						+ serverPort + "' ...");
 
 				request = new DatagramPacket(buffer, buffer.length);

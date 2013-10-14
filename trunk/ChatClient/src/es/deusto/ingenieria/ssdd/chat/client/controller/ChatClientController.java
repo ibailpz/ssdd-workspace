@@ -11,8 +11,10 @@ import java.net.SocketException;
 import es.deusto.ingenieria.ssdd.chat.data.User;
 
 public class ChatClientController {
+
 	private String serverIP;
 	private int serverPort;
+	private int localPort;
 	private User connectedUser;
 	private User chatReceiver;
 	private MessageReceiverInterface observable;
@@ -20,60 +22,24 @@ public class ChatClientController {
 	public ChatClientController() {
 		this.serverIP = null;
 		this.serverPort = -1;
-		new Thread(new Runnable() {
-
-			@Override
-			public void run() {
-				for (;;) {
-					try (DatagramSocket udpSocket = new DatagramSocket(
-							serverPort)) {
-						byte[] buffer = new byte[1024];
-
-						System.out.println(" - Waiting for connections '"
-								+ udpSocket.getLocalAddress().getHostAddress()
-								+ ":" + serverPort + "' ...");
-
-						final DatagramPacket request = new DatagramPacket(
-								buffer, buffer.length);
-						udpSocket.receive(request);
-						System.out.println(" - Received a request from '"
-								+ request.getAddress().getHostAddress() + ":"
-								+ request.getPort() + "' -> "
-								+ new String(request.getData()));
-
-						new Thread(new Runnable() {
-
-							@Override
-							public void run() {
-								processRequest(request);
-							}
-						}, "ProcessRequest");
-					} catch (SocketException e) {
-						System.err.println("# UDPServer Socket error: "
-								+ e.getMessage());
-					} catch (IOException e) {
-						System.err.println("# UDPServer IO error: "
-								+ e.getMessage());
-					}
-				}
-			}
-		}, "ReceivingThread");
 	}
 
 	private void processRequest(DatagramPacket request) {
-		String message = new String(request.getData());
+		String message = new String(request.getData()).trim();
 		String[] split = message.split(" ");
-		
+
 		if (split[0].equals("receive_message")) {
 			receiveMessage(message.substring(split[0].length()
 					+ split[1].length() + 2));
 		} else if (split[0].equals("invitation")) {
 			receiveChatRequest(split[1]);
 		} else if (split[0].equals("update_users")) {
-			String[] splitUsers = split[1].split("||");
 			List<String> users = new ArrayList<>();
-			for (int i=0; i<splitUsers.length; i++){
-				users.add(splitUsers[i]);
+			if (split.length > 1) {
+				String[] splitUsers = split[1].split("\\|\\|");
+				for (int i = 0; i < splitUsers.length; i++) {
+					users.add(splitUsers[i]);
+				}
 			}
 			this.observable.onUsersUpdated(users);
 			this.observable.onConnect(true);
@@ -86,6 +52,7 @@ public class ChatClientController {
 		} else if (split[0].equals("busy")) {
 			this.observable.onChatRequestResponse(split[1], false);
 		} else if (split[0].equals("error_nick")) {
+			connectedUser = null;
 			this.observable.onError("ERROR nick");
 		} else if (split[0].equals("error_user")) {
 			this.observable.onError("ERROR user");
@@ -136,12 +103,54 @@ public class ChatClientController {
 		this.observable = null;
 	}
 
-	public void connect(String ip, int port, String nick) throws IOException {
+	public void connect(String ip, int serverPort, int localPort, String nick)
+			throws IOException {
 		this.connectedUser = new User();
 		this.connectedUser.setNick(nick);
 		this.serverIP = ip;
-		this.serverPort = port;
-		sendCommand("connect " + nick);
+		this.serverPort = serverPort;
+		this.localPort = localPort;
+		new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				for (;;) {
+					try (DatagramSocket udpSocket = new DatagramSocket(
+							ChatClientController.this.localPort)) {
+						for (;;) {
+							byte[] buffer = new byte[1024];
+
+							System.out.println(" - Waiting for connections on port '"
+									+ ChatClientController.this.localPort
+									+ "' ...");
+
+							final DatagramPacket request = new DatagramPacket(
+									buffer, buffer.length);
+							udpSocket.receive(request);
+							System.out.println(" - Received a request from '"
+									+ request.getAddress().getHostAddress()
+									+ ":" + request.getPort() + "' -> "
+									+ new String(request.getData()));
+
+							new Thread(new Runnable() {
+
+								@Override
+								public void run() {
+									processRequest(request);
+								}
+							}, "ProcessRequest").start();
+						}
+					} catch (SocketException e) {
+						System.err.println("# UDPServer Socket error: "
+								+ e.getMessage());
+					} catch (IOException e) {
+						System.err.println("# UDPServer IO error: "
+								+ e.getMessage());
+					}
+				}
+			}
+		}, "ReceivingThread").start();
+		sendCommand("connect " + nick + " " + this.localPort);
 	}
 
 	public void disconnect() {
@@ -174,7 +183,7 @@ public class ChatClientController {
 		this.observable.onMessageReceived(message, chatReceiver.getNick());
 	}
 
-	public void sendChatRequest(String to) throws IOException {		
+	public void sendChatRequest(String to) throws IOException {
 		sendCommand("send_invitation " + connectedUser.getNick() + " " + to);
 	}
 
@@ -197,7 +206,8 @@ public class ChatClientController {
 	}
 
 	public void sendChatClosure() throws IOException {
-		sendCommand("close_chat " + connectedUser.getNick() + " " + chatReceiver.getNick());
+		sendCommand("close_chat " + connectedUser.getNick() + " "
+				+ chatReceiver.getNick());
 		this.chatReceiver = null;
 	}
 
