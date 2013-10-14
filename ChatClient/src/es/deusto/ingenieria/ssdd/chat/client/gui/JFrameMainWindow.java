@@ -48,6 +48,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	private JPanel contentPane;
 	private JTextField txtFieldServerIP;
 	private JTextField txtFieldServerPort;
+	private JTextField txtFieldLocalPort;
 	private JTextField txtFieldNick;
 	private JButton btnConnect;
 	private JList<String> listUsers;
@@ -100,11 +101,15 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 		
 		JLabel lblServerIp = new JLabel("Server IP:");		
 		JLabel lblServerPort = new JLabel("Server Port:");
+		JLabel lblLocalPort = new JLabel("Local Port:");
 		
 		txtFieldServerIP = new JTextField();
 		txtFieldServerIP.setColumns(10);
 		txtFieldServerPort = new JTextField();
 		txtFieldServerPort.setColumns(10);
+		
+		txtFieldLocalPort = new JTextField();
+		txtFieldLocalPort.setColumns(10);
 		
 		JLabel lblNick = new JLabel("Nick:");
 		
@@ -136,7 +141,13 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 							.addComponent(txtFieldNick, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)
 							.addGap(28)
 							.addComponent(btnConnect))
-						.addComponent(txtFieldServerPort, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addGroup(gl_panelConnect.createSequentialGroup()
+							.addComponent(txtFieldServerPort, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+							.addGap(37)
+							.addComponent(lblLocalPort)
+							.addGap(18)
+							.addComponent(txtFieldLocalPort, GroupLayout.PREFERRED_SIZE, 115, GroupLayout.PREFERRED_SIZE)))
+//						.addComponent(txtFieldServerPort, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addContainerGap(302, Short.MAX_VALUE))
 		);
 		gl_panelConnect.setVerticalGroup(
@@ -152,7 +163,9 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 					.addPreferredGap(ComponentPlacement.RELATED)
 					.addGroup(gl_panelConnect.createParallelGroup(Alignment.BASELINE)
 						.addComponent(lblServerPort)
-						.addComponent(txtFieldServerPort, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
+						.addComponent(txtFieldServerPort, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblLocalPort)
+						.addComponent(txtFieldLocalPort, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE))
 					.addContainerGap(15, Short.MAX_VALUE))
 		);
 		panelConnect.setLayout(gl_panelConnect);
@@ -224,10 +237,16 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 				return;
 			}
 			
+			this.txtFieldServerIP.setEditable(false);
+			this.txtFieldServerPort.setEditable(false);
+			this.txtFieldNick.setEditable(false);
+			this.btnConnect.setEnabled(false);
+			
 			//Connect to the server
 			try {
 				this.controller.connect(this.txtFieldServerIP.getText(),
 				        Integer.parseInt(this.txtFieldServerPort.getText()),
+				        Integer.parseInt(this.txtFieldLocalPort.getText()),
 				        this.txtFieldNick.getText());
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -238,21 +257,26 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 		}
 	}
 	
+	private void disconnectedUI() {
+		this.txtFieldServerIP.setEditable(true);
+		this.txtFieldServerPort.setEditable(true);
+		this.txtFieldNick.setEditable(true);
+		this.listUsers.setEnabled(true);
+		this.listUsers.clearSelection();
+		this.btnConnect.setEnabled(true);
+		this.btnConnect.setText("Connect");
+		this.btnSendMsg.setEnabled(false);
+		this.textAreaHistory.setText("");
+		this.textAreaSendMsg.setText("");
+		
+		this.setTitle("Chat main window - 'Disconnected'");
+	}
+	
 	private void disconnect() {
 		//Disconnect from the server
 //		if (this.controller.disconnect()) {
 			this.controller.disconnect();
-			this.txtFieldServerIP.setEditable(true);
-			this.txtFieldServerPort.setEditable(true);
-			this.txtFieldNick.setEditable(true);
-			this.listUsers.setEnabled(true);
-			this.listUsers.clearSelection();
-			this.btnConnect.setText("Connect");
-			this.btnSendMsg.setEnabled(false);
-			this.textAreaHistory.setText("");
-			this.textAreaSendMsg.setText("");
-			
-			this.setTitle("Chat main window - 'Disconnected'");
+			disconnectedUI();
 //		} else {
 //			JOptionPane.showMessageDialog(this, "Disconnection from the server fails.", "Disconnection error", JOptionPane.ERROR_MESSAGE);				
 //		}
@@ -370,9 +394,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	@Override
 	public void onConnect(boolean connected) {
 		if (connected) {
-			this.txtFieldServerIP.setEditable(false);
-			this.txtFieldServerPort.setEditable(false);
-			this.txtFieldNick.setEditable(false);
+			this.btnConnect.setEnabled(true);
 			this.btnConnect.setText("Disconnect");
 			this.btnSendMsg.setEnabled(true);
 			this.textAreaHistory.setText("");
@@ -402,7 +424,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 			disconnect();
 			JOptionPane.showMessageDialog(this, "An error occurred in the server. Please connect again", "Critical error", JOptionPane.ERROR_MESSAGE);
 		} else if(error.equals("ERROR nick")){
-			disconnect();
+			disconnectedUI();
 			JOptionPane.showMessageDialog(this, "Nick in use. Please introduce another one.", "Nick error", JOptionPane.ERROR_MESSAGE);
 		}else if (error.equals("ERROR user")){
 			JOptionPane.showMessageDialog(this, "user is not connected. Please select another user.", "User error", JOptionPane.ERROR_MESSAGE);
