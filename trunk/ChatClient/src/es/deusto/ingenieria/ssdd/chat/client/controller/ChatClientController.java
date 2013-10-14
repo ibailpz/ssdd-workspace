@@ -195,21 +195,15 @@ public class ChatClientController {
 		sendCommand("busy " + connectedUser.getNick() + " " + user);
 	}
 
-	public void sendChatClosure() {
-
-		// ENTER YOUR CODE TO SEND A CHAT CLOSURE
-
+	public void sendChatClosure() throws IOException {
+		sendCommand("close_chat " + connectedUser.getNick() + " " + chatReceiver.getNick());
 		this.chatReceiver = null;
 	}
 
 	public void receiveChatClosure() {
-
-		// ENTER YOUR CODE TO RECEIVE A CHAT REQUEST
-
-		String message = "Chat request details";
-
 		// Notify the chat request details to the GUI
-		this.observable.onChatDisconnect(message);
+		this.observable.onChatDisconnect(chatReceiver.getNick());
+		chatReceiver = null;
 	}
 
 	private void sendCommand(String command) throws IOException {
