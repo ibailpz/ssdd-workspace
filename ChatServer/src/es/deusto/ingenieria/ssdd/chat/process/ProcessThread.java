@@ -77,8 +77,7 @@ public class ProcessThread extends Thread {
 						updateUserList();
 					} else if (split[0].toLowerCase().equals("send_invitation")) {
 						sendInvitation(split[2], user);
-					} 
-					else {
+					} else {
 						errorRestart(user);
 					}
 					break;

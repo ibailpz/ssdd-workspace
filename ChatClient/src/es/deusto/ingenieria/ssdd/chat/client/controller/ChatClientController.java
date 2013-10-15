@@ -28,39 +28,41 @@ public class ChatClientController {
 	private void processRequest(DatagramPacket request) {
 		String message = new String(request.getData()).trim();
 		String[] split = message.split(" ");
-
-		if (split[0].equals("receive_message")) {
-			receiveMessage(message.substring(split[0].length()
-					+ split[1].length() + 2));
-		} else if (split[0].equals("invitation")) {
-			receiveChatRequest(split[1]);
-		} else if (split[0].equals("update_users")) {
-			List<String> users = new ArrayList<>();
-			if (split.length > 1) {
-				String[] splitUsers = split[1].split("\\|\\|");
-				for (int i = 0; i < splitUsers.length; i++) {
-					users.add(splitUsers[i]);
-				}
-			}
-			this.observable.onUsersUpdated(users);
-			this.observable.onConnect(true);
-		} else if (split[0].equals("close_chat")) {
-			receiveChatClosure();
-		} else if (split[0].equals("accept")) {
-			this.chatReceiver = new User();
-			this.chatReceiver.setNick(split[1]);
-			this.observable.onChatRequestResponse(split[1], true);
-		} else if (split[0].equals("busy")) {
-			this.observable.onChatRequestResponse(split[1], false);
-		} else if (split[0].equals("error_nick")) {
+		
+		if (split[0].equals("error_nick")) {
 			connectedUser = null;
 			this.observable.onError("ERROR nick");
-		} else if (split[0].equals("error_user")) {
-			this.observable.onError("ERROR user");
-		} else if (split[0].equals("cancel_invitation")) {
-			this.observable.onInvitationCancelled(split[1]);
-		} else if (split[0].equals("error_restart")) {
-			this.observable.onError("RESTART");
+		} else {
+			this.observable.onConnect(true);
+			if (split[0].equals("receive_message")) {
+				receiveMessage(message.substring(split[0].length()
+						+ split[1].length() + 2));
+			} else if (split[0].equals("invitation")) {
+				receiveChatRequest(split[1]);
+			} else if (split[0].equals("update_users")) {
+				List<String> users = new ArrayList<>();
+				if (split.length > 1) {
+					String[] splitUsers = split[1].split("\\|\\|");
+					for (int i = 0; i < splitUsers.length; i++) {
+						users.add(splitUsers[i]);
+					}
+				}
+				this.observable.onUsersUpdated(users);
+			} else if (split[0].equals("close_chat")) {
+				receiveChatClosure();
+			} else if (split[0].equals("accept")) {
+				this.chatReceiver = new User();
+				this.chatReceiver.setNick(split[1]);
+				this.observable.onChatRequestResponse(split[1], true);
+			} else if (split[0].equals("busy")) {
+				this.observable.onChatRequestResponse(split[1], false);
+			} else if (split[0].equals("error_user")) {
+				this.observable.onError("ERROR user");
+			} else if (split[0].equals("cancel_invitation")) {
+				this.observable.onInvitationCancelled(split[1]);
+			} else if (split[0].equals("error_restart")) {
+				this.observable.onError("RESTART");
+			}
 		}
 	}
 
