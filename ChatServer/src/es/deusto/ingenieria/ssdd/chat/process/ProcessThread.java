@@ -154,13 +154,14 @@ public class ProcessThread extends Thread {
 	}
 
 	private void updateUserList() {
-		ArrayList<String> userNames = new ArrayList<>(users.keySet());
-		for (User u : users.values()) {
+		ArrayList<User> userNames = new ArrayList<>(users.values());
+		for (int j = 0; j < userNames.size(); j++) {
+			User u = userNames.get(j);
 			StringBuilder sb = new StringBuilder();
 //			userNames.remove(u.getNick());
 			for (int i = 0; i < userNames.size(); i++) {
-				if (!userNames.get(i).equals(u.getNick())) {
-					sb.append(userNames.get(i)).append("||");
+				if (!userNames.get(i).getNick().equals(u.getNick())) {
+					sb.append(userNames.get(i).getNick()).append("||");
 				}
 			}
 			String users = sb.toString();
