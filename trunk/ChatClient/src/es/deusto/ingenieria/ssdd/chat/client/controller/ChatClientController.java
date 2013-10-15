@@ -18,6 +18,7 @@ public class ChatClientController {
 	private User connectedUser;
 	private User chatReceiver;
 	private MessageReceiverInterface observable;
+	private Thread process;
 
 	public ChatClientController() {
 		this.serverIP = null;
@@ -110,14 +111,14 @@ public class ChatClientController {
 		this.serverIP = ip;
 		this.serverPort = serverPort;
 		this.localPort = localPort;
-		new Thread(new Runnable() {
-
+		process = new Thread() {
+			
 			@Override
 			public void run() {
-				for (;;) {
+				for (;!this.isInterrupted();) {
 					try (DatagramSocket udpSocket = new DatagramSocket(
 							ChatClientController.this.localPort)) {
-						for (;;) {
+						for (;!this.isInterrupted();) {
 							byte[] buffer = new byte[1024];
 
 							System.out.println(" - Waiting for connections on port '"
@@ -149,7 +150,8 @@ public class ChatClientController {
 					}
 				}
 			}
-		}, "ReceivingThread").start();
+		};
+		process.start();
 		sendCommand("connect " + nick + " " + this.localPort);
 	}
 
@@ -162,6 +164,9 @@ public class ChatClientController {
 
 		this.connectedUser = null;
 		this.chatReceiver = null;
+		if (process!=null){
+			process.interrupt();
+		}
 	}
 
 	// public List<String> getConnectedUsers() {
