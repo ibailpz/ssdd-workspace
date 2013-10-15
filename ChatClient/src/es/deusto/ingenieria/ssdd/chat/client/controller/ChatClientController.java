@@ -7,6 +7,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 
 import es.deusto.ingenieria.ssdd.chat.data.User;
 
@@ -236,6 +237,16 @@ public class ChatClientController {
 			System.out.println(" - Sent a request to '"
 					+ serverHost.getHostAddress() + ":" + request.getPort()
 					+ "' -> " + new String(request.getData()));
+			
+			byte[] buffer = new byte[1024];
+			DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
+			udpSocket.setSoTimeout(1);
+			udpSocket.receive(reply);
+			System.out.println(" - Received a reply from '"
+					+ reply.getAddress().getHostAddress() + ":"
+					+ reply.getPort() + "' -> " + new String(reply.getData()));
+		} catch (SocketTimeoutException e) {
+			// Do nothing
 		}
 	}
 }
