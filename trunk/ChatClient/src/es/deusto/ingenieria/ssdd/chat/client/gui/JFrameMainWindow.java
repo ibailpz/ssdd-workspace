@@ -58,7 +58,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	private JTextArea textAreaSendMsg;
 	private JButton btnSendMsg;
 	private SimpleDateFormat textFormatter = new SimpleDateFormat("HH:mm:ss");
-	private JOptionPane waitingInvitationPane;
+	private JDialog waitingInvitationPane;
 	
 	private ChatClientController controller;	
 
@@ -295,23 +295,23 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 				int result = JOptionPane.showConfirmDialog(this, "Do you want to start a new chat session with '" + this.listUsers.getSelectedValue() + "'", "Open chat Session", JOptionPane.YES_NO_OPTION);
 
 				if (result == JOptionPane.OK_OPTION) {
-					waitingInvitationPane = new JOptionPane("Waiting invitation answer from "
+					final JOptionPane innerPane = new JOptionPane("Waiting invitation answer from "
 							+ this.listUsers.getSelectedValue() + "...", JOptionPane.PLAIN_MESSAGE,
 							JOptionPane.DEFAULT_OPTION, null, new String[]{"Cancel"});
-					final JDialog dialog = new JDialog(this, 
+					waitingInvitationPane = new JDialog(this, 
                             "Waiting answer",
                             true);
-					dialog.setContentPane(waitingInvitationPane);
-					dialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-					waitingInvitationPane.addPropertyChangeListener(
+					waitingInvitationPane.setContentPane(innerPane);
+					waitingInvitationPane.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+					innerPane.addPropertyChangeListener(
 					    new PropertyChangeListener() {
 					        public void propertyChange(PropertyChangeEvent e) {
 					            String prop = e.getPropertyName();
 
-					            if (dialog.isVisible() 
-					             && (e.getSource() == waitingInvitationPane)
+					            if (waitingInvitationPane.isVisible() 
+					             && (e.getSource() == innerPane)
 					             && (prop.equals(JOptionPane.VALUE_PROPERTY))) {
-					                dialog.setVisible(false);
+					                waitingInvitationPane.setVisible(false);
 					            }
 					        }
 					    });
@@ -319,15 +319,15 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 					try {
 						this.controller.sendChatRequest(this.listUsers.getSelectedValue());
 					
-						dialog.pack();
-						dialog.setVisible(true);
+						waitingInvitationPane.pack();
+						waitingInvitationPane.setVisible(true);
 					} catch (IOException e1) {
 						e1.printStackTrace();
-						dialog.setVisible(false);
+						waitingInvitationPane.setVisible(false);
 						JOptionPane.showMessageDialog(this, "Chat cannot be started. Try again later", "Error sending chat request", JOptionPane.ERROR_MESSAGE);
 					}
 					
-					String value = (String) waitingInvitationPane.getValue();
+					String value = (String) innerPane.getValue();
 					if (value != null && !value.trim().equals("")) {
 						try {
 							controller.cancelInvitation(listUsers.getSelectedValue());
