@@ -237,6 +237,10 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 				JOptionPane.showMessageDialog(this, "Some connection parameters are empty", "Connection initializarion error", JOptionPane.ERROR_MESSAGE);				
 				
 				return;
+			} else if (this.txtFieldNick.getText().contains(" ")) {
+				JOptionPane.showMessageDialog(this, "The user nick cannot contain any spaces", "Nick error", JOptionPane.ERROR_MESSAGE);				
+				
+				return;
 			}
 			
 			this.txtFieldServerIP.setEditable(false);
@@ -323,8 +327,8 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 						JOptionPane.showMessageDialog(this, "Chat cannot be started. Try again later", "Error sending chat request", JOptionPane.ERROR_MESSAGE);
 					}
 					
-					int value = ((Integer)waitingInvitationPane.getValue()).intValue();
-					if (value == 0) {
+					String value = (String) waitingInvitationPane.getValue();
+					if (value != null && !value.trim().equals("")) {
 						try {
 							controller.cancelInvitation(listUsers.getSelectedValue());
 						} catch (IOException e) {
