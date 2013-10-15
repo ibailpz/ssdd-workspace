@@ -60,6 +60,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	private SimpleDateFormat textFormatter = new SimpleDateFormat("HH:mm:ss");
 	private JDialog waitingInvitationPane;
 	private JDialog invitationPane;
+	private boolean isProgrammatic = false;
 	
 	private ChatClientController controller;	
 
@@ -290,6 +291,10 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	}
 	
 	private void selectUser() {
+		if (isProgrammatic) {
+			isProgrammatic = false;
+			return;
+		}
 		if (this.listUsers.getSelectedIndex() != -1 && this.controller.getConnectedUser() != null) {		
 			//Send chat Request
 			if (!this.controller.isChatSessionOpened()) {			
@@ -506,7 +511,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	@Override
 	public void onChatInvitationReceived(String user) {
 		final JOptionPane innerPane = new JOptionPane("Would you like to start a chat session with "
-				+ user + "?", JOptionPane.YES_NO_OPTION);
+				+ user + "?", JOptionPane.INFORMATION_MESSAGE, JOptionPane.YES_NO_OPTION);
 		invitationPane = new JDialog(this, 
 				"Start new chat session",
                 true);
@@ -532,6 +537,8 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 		try {
 			if (value == JOptionPane.YES_OPTION) {
 				this.controller.acceptChatRequest(user);
+				isProgrammatic = true;
+				this.listUsers.setSelectedValue(user, true);
 				this.setTitle("Chat session between '" + this.controller.getConnectedUser() + "' & '" + user + "'");
 			} else if (value == JOptionPane.NO_OPTION) {
 				this.controller.refuseChatRequest(user);
