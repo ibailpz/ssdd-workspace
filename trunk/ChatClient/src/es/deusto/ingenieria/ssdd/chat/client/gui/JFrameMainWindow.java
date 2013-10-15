@@ -215,13 +215,6 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 		this.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
-				if (JFrameMainWindow.this.controller.isChatSessionOpened()) {
-					try {
-						JFrameMainWindow.this.controller.sendChatClosure();
-					} catch (IOException e1) {
-						e1.printStackTrace();						
-					}
-				}
 				if (JFrameMainWindow.this.controller.isConnected()){
 					disconnect();	
 				}				
@@ -281,6 +274,13 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	}
 	
 	private void disconnect() {
+		if (this.controller.isChatSessionOpened()) {
+			try {
+				this.controller.sendChatClosure();
+			} catch (IOException e1) {
+				e1.printStackTrace();						
+			}
+		}
 		//Disconnect from the server
 //		if (this.controller.disconnect()) {
 			this.controller.disconnect();
