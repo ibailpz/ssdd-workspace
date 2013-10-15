@@ -505,7 +505,6 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	
 	@Override
 	public void onChatInvitationReceived(String user) {
-		JOptionPane.showConfirmDialog(this, "Would you like to start a chat session with " + user + "?", "Start new chat session", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 		final JOptionPane innerPane = new JOptionPane("Would you like to start a chat session with "
 				+ user + "?", JOptionPane.YES_NO_OPTION);
 		invitationPane = new JDialog(this, 
