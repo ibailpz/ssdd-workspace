@@ -59,6 +59,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	private JButton btnSendMsg;
 	private SimpleDateFormat textFormatter = new SimpleDateFormat("HH:mm:ss");
 	private JDialog waitingInvitationPane;
+	private JDialog invitationPane;
 	
 	private ChatClientController controller;	
 
@@ -317,9 +318,8 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 					    });
 					
 					try {
-						this.controller.sendChatRequest(this.listUsers.getSelectedValue());
-					
 						waitingInvitationPane.pack();
+						this.controller.sendChatRequest(this.listUsers.getSelectedValue());
 						waitingInvitationPane.setVisible(true);
 					} catch (IOException e1) {
 						e1.printStackTrace();
@@ -473,28 +473,73 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 		this.setTitle("Chat main window - 'Connected'");
 	}
 
-	@Override
-	public void onChatInvitationReceived(String user) {
-		int op = JOptionPane.showConfirmDialog(this, "Would you like to start a chat session with " + user + "?", "Start new chat session", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-		try {
-			if (op == JOptionPane.CLOSED_OPTION || op == JOptionPane.NO_OPTION) {
-				this.controller.refuseChatRequest(user);
-			} else {
-				this.controller.acceptChatRequest(user);
-				this.setTitle("Chat session between '" + this.controller.getConnectedUser() + "' & '" + user + "'");
-			}
-		} catch(IOException ex) {
-			ex.printStackTrace();
-			JOptionPane.showMessageDialog(this, "Error connecting to the server. Try again later", "Connection error", JOptionPane.ERROR_MESSAGE);
-		}
-	}
+//	@Override
+//	public void onChatInvitationReceived(String user) {
+//		int op = JOptionPane.showConfirmDialog(this, "Would you like to start a chat session with " + user + "?", "Start new chat session", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+//		try {
+//			if (op == JOptionPane.CLOSED_OPTION || op == JOptionPane.NO_OPTION) {
+//				this.controller.refuseChatRequest(user);
+//			} else {
+//				this.controller.acceptChatRequest(user);
+//				this.setTitle("Chat session between '" + this.controller.getConnectedUser() + "' & '" + user + "'");
+//			}
+//		} catch(IOException ex) {
+//			ex.printStackTrace();
+//			JOptionPane.showMessageDialog(this, "Error connecting to the server. Try again later", "Connection error", JOptionPane.ERROR_MESSAGE);
+//		}
+//	}
 
 	@Override
 	public void onInvitationCancelled(String user) {
-		if (waitingInvitationPane != null) {
-			waitingInvitationPane.setVisible(false);
-			waitingInvitationPane = null;
+//		if (waitingInvitationPane != null) {
+//			waitingInvitationPane.setVisible(false);
+//			waitingInvitationPane = null;
+//			JOptionPane.showMessageDialog(this, user + " cancelled the invitation to start a chat", "Invitation cancelled", JOptionPane.INFORMATION_MESSAGE);
+//		}
+		if (invitationPane != null) {
+			invitationPane.setVisible(false);
+			invitationPane = null;
 			JOptionPane.showMessageDialog(this, user + " cancelled the invitation to start a chat", "Invitation cancelled", JOptionPane.INFORMATION_MESSAGE);
+		}
+	}
+	
+	@Override
+	public void onChatInvitationReceived(String user) {
+		JOptionPane.showConfirmDialog(this, "Would you like to start a chat session with " + user + "?", "Start new chat session", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+		final JOptionPane innerPane = new JOptionPane("Would you like to start a chat session with "
+				+ user + "?", JOptionPane.YES_NO_OPTION);
+		invitationPane = new JDialog(this, 
+				"Start new chat session",
+                true);
+		invitationPane.setContentPane(innerPane);
+		invitationPane.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+		innerPane.addPropertyChangeListener(
+		    new PropertyChangeListener() {
+		        public void propertyChange(PropertyChangeEvent e) {
+		            String prop = e.getPropertyName();
+
+		            if (invitationPane.isVisible() 
+		             && (e.getSource() == innerPane)
+		             && (prop.equals(JOptionPane.VALUE_PROPERTY))) {
+		            	invitationPane.setVisible(false);
+		            }
+		        }
+		    });
+		
+		invitationPane.pack();
+		invitationPane.setVisible(true);
+		
+		int value = ((Integer)innerPane.getValue()).intValue();
+		try {
+			if (value == JOptionPane.YES_OPTION) {
+				this.controller.acceptChatRequest(user);
+				this.setTitle("Chat session between '" + this.controller.getConnectedUser() + "' & '" + user + "'");
+			} else if (value == JOptionPane.NO_OPTION) {
+				this.controller.refuseChatRequest(user);
+			}
+		} catch (IOException ex) {
+			ex.printStackTrace();
+			JOptionPane.showMessageDialog(this, "Error connecting to the server. Try again later", "Connection error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
