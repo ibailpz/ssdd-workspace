@@ -5,6 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -187,17 +188,21 @@ public class ProcessThread extends Thread {
 					+ ":" + request.getPort() + "' -> "
 					+ new String(request.getData()));
 
-//			byte[] buffer = new byte[1024];
-//			DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
-//			udpSocket.receive(reply);
-//			System.out.println(" - Received a reply from '"
-//					+ reply.getAddress().getHostAddress() + ":"
-//					+ reply.getPort() + "' -> " + new String(reply.getData()));
+			byte[] buffer = new byte[1024];
+			DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
+			udpSocket.setSoTimeout(1);
+			udpSocket.receive(reply);
+			System.out.println(" - Received a reply from '"
+					+ reply.getAddress().getHostAddress() + ":"
+					+ reply.getPort() + "' -> " + new String(reply.getData()));
+		} catch (SocketTimeoutException e) {
+			// Do nothing
 		} catch (SocketException e) {
 			System.err.println("# UDPClient Socket error: " + e.getMessage());
 			e.printStackTrace();
 		} catch (IOException e) {
 			System.err.println("# UDPClient IO error: " + e.getMessage());
+			e.printStackTrace();
 		}
 	}
 }
