@@ -205,6 +205,8 @@ public class ChatClientController {
 	}
 
 	public void acceptChatRequest(String user) throws IOException {
+		this.chatReceiver = new User();
+		this.chatReceiver.setNick(user);
 		sendCommand("accept " + connectedUser.getNick() + " " + user);
 	}
 
