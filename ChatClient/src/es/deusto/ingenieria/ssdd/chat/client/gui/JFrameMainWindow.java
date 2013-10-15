@@ -328,7 +328,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 					}
 					
 					String value = (String) innerPane.getValue();
-					if (value != null && !value.trim().equals("")) {
+					if (value != null && value.equals("Cancel")) {
 						try {
 							controller.cancelInvitation(listUsers.getSelectedValue());
 						} catch (IOException e) {
