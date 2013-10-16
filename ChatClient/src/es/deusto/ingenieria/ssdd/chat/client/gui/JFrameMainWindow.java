@@ -240,6 +240,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 			
 			this.txtFieldServerIP.setEditable(false);
 			this.txtFieldServerPort.setEditable(false);
+			this.txtFieldLocalPort.setEditable(false);
 			this.txtFieldNick.setEditable(false);
 			this.btnConnect.setEnabled(false);
 			
@@ -261,6 +262,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	private void disconnectedUI() {
 		this.txtFieldServerIP.setEditable(true);
 		this.txtFieldServerPort.setEditable(true);
+		this.txtFieldLocalPort.setEditable(true);
 		this.txtFieldNick.setEditable(true);
 		this.listUsers.setEnabled(true);
 		this.listUsers.clearSelection();
@@ -281,6 +283,11 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 			} catch (IOException e1) {
 				e1.printStackTrace();						
 			}
+		}
+		try {
+			Thread.sleep(500);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
 		//Disconnect from the server
 //		if (this.controller.disconnect()) {

@@ -112,7 +112,6 @@ public class ProcessThread extends Thread {
 					} else if (split[0].toLowerCase().equals("close_chat")) {
 						User userOther = users.get(split[2]);
 						closeChat(user, userOther);
-
 					} else if (split[0].toLowerCase().equals("send_invitation")) {
 						sendInvitation(split[2], user);
 					} else {
