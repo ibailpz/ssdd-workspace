@@ -192,6 +192,9 @@ public class ChatClientController {
 	}
 
 	public void sendChatRequest(String to) throws IOException {
+		if (this.chatReceiver != null) {
+			sendChatClosure();
+		}
 		sendCommand("send_invitation " + connectedUser.getNick() + " " + to);
 	}
 
@@ -206,6 +209,9 @@ public class ChatClientController {
 	}
 
 	public void acceptChatRequest(String user) throws IOException {
+		if (this.chatReceiver != null) {
+			sendChatClosure();
+		}
 		this.chatReceiver = new User();
 		this.chatReceiver.setNick(user);
 		sendCommand("accept " + connectedUser.getNick() + " " + user);
