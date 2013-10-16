@@ -264,6 +264,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 		this.txtFieldNick.setEditable(true);
 		this.listUsers.setEnabled(true);
 		this.listUsers.clearSelection();
+		this.listUsers.setModel(new DefaultListModel<String>());
 		this.btnConnect.setEnabled(true);
 		this.btnConnect.setText("Connect");
 		this.btnSendMsg.setEnabled(false);
@@ -477,6 +478,7 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 				waitingInvitationPane.setVisible(false);
 				waitingInvitationPane = null;
 			}
+			this.listUsers.clearSelection();
 			JOptionPane.showMessageDialog(this, user + " refused the invitation to start a chat", "Invitation refused", JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
