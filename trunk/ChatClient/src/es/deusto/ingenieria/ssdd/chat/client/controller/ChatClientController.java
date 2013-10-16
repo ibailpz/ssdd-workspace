@@ -216,15 +216,15 @@ public class ChatClientController {
 	}
 
 	public void sendChatClosure() throws IOException {
+		this.chatReceiver = null;
 		sendCommand("close_chat " + connectedUser.getNick() + " "
 				+ chatReceiver.getNick());
-		this.chatReceiver = null;
 	}
 
 	public void receiveChatClosure() {
 		// Notify the chat request details to the GUI
+		this.chatReceiver = null;
 		this.observable.onChatDisconnect(chatReceiver.getNick());
-		chatReceiver = null;
 	}
 
 	private void sendCommand(String command) throws IOException {
