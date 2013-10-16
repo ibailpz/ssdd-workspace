@@ -428,7 +428,6 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 			this.btnConnect.setEnabled(true);
 			this.btnConnect.setText("Disconnect");
 			this.btnSendMsg.setEnabled(true);
-			this.textAreaHistory.setText("");
 			this.textAreaSendMsg.setText("");
 			
 			this.setTitle("Chat main window - 'Connected'");
