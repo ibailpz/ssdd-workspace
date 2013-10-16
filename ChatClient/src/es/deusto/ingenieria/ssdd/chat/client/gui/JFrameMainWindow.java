@@ -444,13 +444,23 @@ public class JFrameMainWindow extends JFrame implements MessageReceiverInterface
 	public void onError(String error) {
 		// TODO Show errors
 		if (error.equals("RESTART")) {
-			disconnect();
-			JOptionPane.showMessageDialog(this, "An error occurred in the server. Please connect again", "Critical error", JOptionPane.ERROR_MESSAGE);
+//			disconnect();
+//			JOptionPane.showMessageDialog(this, "An error occurred in the server. Please connect again", "Critical error", JOptionPane.ERROR_MESSAGE);
+			if (this.controller.isConnected()) {
+				if (this.controller.isChatSessionOpened()) {
+					onChatDisconnect(this.controller.getChatReceiver());
+				} else if (waitingInvitationPane != null) {
+					JOptionPane.showMessageDialog(this, "Invitation cannot be delivered. Try again later", "Invitation error", JOptionPane.INFORMATION_MESSAGE);
+					onConnect(true);
+				}
+			} else {
+				disconnectedUI();
+			}
 		} else if(error.equals("ERROR nick")){
 			disconnectedUI();
-			JOptionPane.showMessageDialog(this, "Nick in use. Please introduce another one.", "Nick error", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(this, "Nick in use. Please introduce another one", "Nick error", JOptionPane.ERROR_MESSAGE);
 		}else if (error.equals("ERROR user")){
-			JOptionPane.showMessageDialog(this, "user is not connected. Please select another user.", "User error", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(this, "User is not connected. Please select another user", "User error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
