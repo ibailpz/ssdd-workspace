@@ -29,17 +29,11 @@ public class ProcessThread extends Thread {
 
 		if (user == null) {
 			if (split[0].toLowerCase().equals("connect")) {
-//				if (users.containsKey(split[1])) {
-//					sendMessage("error_nick " + split[1] + " in use",
-//							this.message.getAddress().getHostAddress(),
-//							Integer.parseInt(split[2]));
-//				} else {
 					User u = new User(this.message.getAddress()
 							.getHostAddress(), Integer.parseInt(split[2]));
 					u.setNick(split[1]);
 					users.put(split[1], u);
 					updateUserList();
-//				}
 			} else {
 				errorRestart(user);
 			}
@@ -169,13 +163,10 @@ public class ProcessThread extends Thread {
 				users = sb.toString().substring(0, sb.length() - 2);
 			}
 			sendMessage("update_users " + users, u.getIp(), u.getPort());
-//			userNames.add(u.getNick());
 		}
 	}
 
 	private void sendMessage(String message, String serverIP, int port) {
-		// String serverIP = this.message.getAddress().getHostAddress();
-		// int serverPort = this.message.getPort();
 
 		try (DatagramSocket udpSocket = new DatagramSocket()) {
 			InetAddress host = InetAddress.getByName(serverIP);
