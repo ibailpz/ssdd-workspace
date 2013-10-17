@@ -172,15 +172,6 @@ public class ChatClientController {
 		}
 	}
 
-	// public List<String> getConnectedUsers() {
-	// List<String> connectedUsers = new ArrayList<>();
-	//
-	// // ENTER YOUR CODE TO OBTAIN THE LIST OF CONNECTED USERS
-	// connectedUsers.add("Default");
-	//
-	// return connectedUsers;
-	// }
-
 	public void sendMessage(String message) throws IOException {
 		sendCommand("send_message " + connectedUser.getNick() + " "
 				+ chatReceiver.getNick() + " " + message);
