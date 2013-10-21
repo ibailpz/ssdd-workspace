@@ -1,23 +1,24 @@
 package es.deusto.ingenieria.ssdd.chat.client.controller;
 
-import java.util.List;
-
 public interface MessageReceiverInterface {
 
-	public void onMessageReceived(String message, String user);
+	public void onMessage(String message, String userFrom, String userTo);
 
 	public void onConnect(boolean connected);
 
-	public void onUsersUpdated(List<String> users);
+	public void onUserConnected(String user);
+
+	public void onUserDisconnected(String user);
 
 	public void onError(String error);
 
-	public void onChatRequestResponse(String user, boolean accept);
+	public void onChatRequestResponse(String userFrom, String userTo,
+			boolean accept);
 
-	public void onChatDisconnect(String user);
-	
-	public void onChatInvitationReceived(String user);
-	
-	public void onInvitationCancelled(String user);
+	public void onChatDisconnect(String userFrom);
+
+	public void onChatInvitation(String userFrom);
+
+	public void onInvitationCancelled(String userFrom, String userTo);
 
 }
