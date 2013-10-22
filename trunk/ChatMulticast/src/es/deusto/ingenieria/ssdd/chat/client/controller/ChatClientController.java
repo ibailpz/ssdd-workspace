@@ -22,6 +22,7 @@ public class ChatClientController {
 	private Timer timer = new Timer();
 	private String lastMessage = null;
 	private boolean receivedLastMessage = false;
+	private boolean iSentNickError = false;
 
 	private void processRequest(DatagramPacket request) {
 		String message = new String(request.getData()).trim();
@@ -46,6 +47,7 @@ public class ChatClientController {
 					myOwnConnect = false;
 				} else if (split[1].equals(connectedUser.getNick())) {
 					try {
+						iSentNickError = true;
 						sendCommand("error_nick " + connectedUser.getNick());
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -68,8 +70,10 @@ public class ChatClientController {
 				observable.onUserDisconnected(split[1]);
 			} else if (split[0].equals("error_nick")) {
 				// connectedUser = null;
-				setDisconnected();
-				this.observable.onError("ERROR nick");
+				if (!iSentNickError) {
+					setDisconnected();
+					this.observable.onError("ERROR nick");
+				}
 			}
 		} else { // or the message is particular for the user
 			if (!split[2].equals(connectedUser.getNick())) {
@@ -190,6 +194,8 @@ public class ChatClientController {
 		if (process != null) {
 			process.interrupt();
 		}
+		lastMessage = null;
+		iSentNickError = false;
 	}
 
 	public void sendMessage(String message) throws IOException {
