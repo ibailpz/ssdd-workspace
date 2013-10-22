@@ -5,6 +5,8 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.SocketException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import es.deusto.ingenieria.ssdd.chat.data.User;
 
@@ -16,67 +18,83 @@ public class ChatClientController {
 	private Thread process;
 	private static final String groupIP = "228.5.6.7";
 	private static final int port = 6789;
+	private boolean myOwnConnect = false;
+	private Timer timer = new Timer();
+	private String lastMessage = null;
+	private boolean receivedLastMessage = false;
 
 	private void processRequest(DatagramPacket request) {
 		String message = new String(request.getData()).trim();
 		String[] split = message.split(" ");
 
+		if (message.equals(lastMessage)) {
+			receivedLastMessage = true;
+			if (split[0].equals("disconnect")) {
+				setDisconnected();
+			}
+		}
+
+		// Ignore every message if the user is not connected
 		if (!isConnected()) {
 			return;
 		}
 
-		if (split[0].equals("connect")) {
-			if (split[1].equals(connectedUser.getNick())) {
-				try {
-					sendMessage("error_nick " + connectedUser.getNick());
-					setDisconnected();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			} else {
-
-				if (isConnected()) {
-
+		// Check if the message is global
+		if (split.length <= 2) {
+			if (split[0].equals("connect")) {
+				if (myOwnConnect) {
+					myOwnConnect = false;
+				} else if (split[1].equals(connectedUser.getNick())) {
 					try {
-						sendMessage("wellcome_my_nick "
-								+ connectedUser.getNick());
+						sendCommand("error_nick " + connectedUser.getNick());
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				} else {
+					try {
 						observable.onConnect(true);
+						sendCommand("welcome_my_nick "
+								+ connectedUser.getNick());
+						observable.onUserConnected(split[1]);
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
 				}
-				else{
-					this.connectedUser = new User();
-					this.connectedUser.setNick(split[1]);
+			} else if (split[0].equals("welcome_my_nick")) {
+				if (!split[1].equals(connectedUser.getNick())) {
+					observable.onUserConnected(split[1]);
 				}
+			} else if (split[0].equals("disconnect")) {
+				observable.onUserDisconnected(split[1]);
+			} else if (split[0].equals("error_nick")) {
+				// connectedUser = null;
+				setDisconnected();
+				this.observable.onError("ERROR nick");
 			}
-		} else if (split[0].equals("wellcome_my_nick")) {
-			observable.onUserConnected(split[1]);
-		} else if (split[0].equals("disconnect")) {
-			observable.onUserDisconnected(split[1]);
-		} else if (!split[2].equals(connectedUser.getNick())) {
-			return;
-		} else if (split[0].equals("error_nick")) {
-			connectedUser = null;
-			this.observable.onError("ERROR nick");
-		} else {
-			this.observable.onConnect(true);
-			if (split[0].equals("message")) {
-				message(message.substring(split[0].length() + split[1].length()
-						+ 2));
-			} else if (split[0].equals("invitation")) {
-				onChatRequest(split[1]);
-			} else if (split[0].equals("close_chat")) {
-				chatClosure(split[1]);
-			} else if (split[0].equals("accept")) {
-				this.chatReceiver = new User();
-				this.chatReceiver.setNick(split[1]);
-				this.observable.onChatRequestResponse(split[1], split[2], true);
-			} else if (split[0].equals("busy")) {
-				this.observable
-						.onChatRequestResponse(split[1], split[2], false);
-			} else if (split[0].equals("cancel_invitation")) {
-				this.observable.onInvitationCancelled(split[1], split[2]);
+		} else { // or the message is particular for the user
+			if (!split[2].equals(connectedUser.getNick())) {
+				// If the message is particular but not for the user, ignore it
+				return;
+			} else {
+				this.observable.onConnect(true);
+				if (split[0].equals("message")) {
+					message(message.substring(split[0].length()
+							+ split[1].length() + split[2].length() + 3));
+				} else if (split[0].equals("invitation")) {
+					onChatRequest(split[1]);
+				} else if (split[0].equals("close_chat")) {
+					chatClosure(split[1]);
+				} else if (split[0].equals("accept")) {
+					this.chatReceiver = new User();
+					this.chatReceiver.setNick(split[1]);
+					this.observable.onChatRequestResponse(split[1], split[2],
+							true);
+				} else if (split[0].equals("busy")) {
+					this.observable.onChatRequestResponse(split[1], split[2],
+							false);
+				} else if (split[0].equals("cancel_invitation")) {
+					this.observable.onInvitationCancelled(split[1], split[2]);
+				}
 			}
 		}
 	}
@@ -115,6 +133,9 @@ public class ChatClientController {
 
 	public void connect(final String groupIP, final int port, final String nick)
 			throws IOException {
+		this.connectedUser = new User();
+		this.connectedUser.setNick(nick);
+		myOwnConnect = true;
 
 		process = new Thread() {
 
@@ -160,7 +181,7 @@ public class ChatClientController {
 			e.printStackTrace();
 		}
 
-		setDisconnected();
+		// setDisconnected();
 	}
 
 	public void setDisconnected() {
@@ -225,6 +246,7 @@ public class ChatClientController {
 	}
 
 	private void sendCommand(String command) throws IOException {
+		lastMessage = command;
 		try (MulticastSocket socket = new MulticastSocket(0)) {
 			InetAddress group = InetAddress.getByName(groupIP);
 			socket.joinGroup(group);
@@ -239,6 +261,20 @@ public class ChatClientController {
 					+ new String(messageOut.getData()));
 
 			socket.leaveGroup(group);
+			timer.schedule(new TimerTask() {
+
+				@Override
+				public void run() {
+					if (!receivedLastMessage) {
+						try {
+							sendCommand(lastMessage);
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
+					receivedLastMessage = false;
+				}
+			}, 500);
 		} catch (SocketException e) {
 			System.err.println("# Socket Error: " + e.getMessage());
 		} catch (IOException e) {
