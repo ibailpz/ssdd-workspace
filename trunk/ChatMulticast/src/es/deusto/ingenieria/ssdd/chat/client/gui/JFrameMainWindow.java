@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.GregorianCalendar;
-import java.util.List;
 
 import javax.swing.DefaultListModel;
 import javax.swing.GroupLayout;
@@ -62,6 +61,7 @@ public class JFrameMainWindow extends JFrame implements
 	private JDialog waitingInvitationPane;
 	private JDialog invitationPane;
 	private boolean isProgrammatic = false;
+	private boolean isUIConnected = false;
 	private DefaultListModel<String> listModel;
 
 	private ChatClientController controller;
@@ -358,6 +358,7 @@ public class JFrameMainWindow extends JFrame implements
 		this.textAreaSendMsg.setText("");
 
 		this.setTitle("Chat main window - 'Disconnected'");
+		isUIConnected = false;
 	}
 
 	private void disconnect() {
@@ -540,6 +541,11 @@ public class JFrameMainWindow extends JFrame implements
 	@Override
 	public void onConnect(boolean connected) {
 		if (connected) {
+			if (isUIConnected) {
+				return;
+			} else {
+				isUIConnected = true;
+			}
 			this.btnConnect.setEnabled(true);
 			this.btnConnect.setText("Disconnect");
 			this.btnSendMsg.setEnabled(true);
@@ -554,44 +560,32 @@ public class JFrameMainWindow extends JFrame implements
 
 	@Override
 	public void onUserConnected(String user) {
-
 		if (!listModel.contains(user)) {
 			listModel.addElement(user);
 		}
 	}
 
 	public void onUserDisconnected(String user) {
-
 		listModel.removeElement(user);
 	}
 
 	@Override
 	public void onError(String error) {
-		if (error.equals("RESTART")) {
-			if (this.controller.isConnected()) {
-				if (this.controller.isChatSessionOpened()) {
-					onChatDisconnect(this.controller.getChatReceiver());
-				} else if (waitingInvitationPane != null) {
-					JOptionPane
-							.showMessageDialog(
-									this,
-									"Invitation cannot be delivered. Try again later",
-									"Invitation error",
-									JOptionPane.INFORMATION_MESSAGE);
-					onConnect(true);
-				}
-			} else {
-				disconnectedUI();
+		if (error.equals("ERROR nick")) {
+			if (waitingInvitationPane != null) {
+				waitingInvitationPane.setVisible(false);
+				waitingInvitationPane = null;
 			}
-		} else if (error.equals("ERROR nick")) {
+			if (invitationPane != null) {
+				invitationPane.setVisible(false);
+				invitationPane = null;
+			}
+
 			disconnectedUI();
+
 			JOptionPane.showMessageDialog(this,
 					"Nick in use. Please introduce another one", "Nick error",
 					JOptionPane.ERROR_MESSAGE);
-		} else if (error.equals("ERROR user")) {
-			JOptionPane.showMessageDialog(this,
-					"User is not connected. Please select another user",
-					"User error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
