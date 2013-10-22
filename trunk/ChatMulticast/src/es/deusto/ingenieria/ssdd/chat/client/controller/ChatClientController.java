@@ -5,6 +5,8 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
 import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -15,39 +17,54 @@ public class ChatClientController {
 	private User connectedUser;
 	private User chatReceiver;
 	private MessageReceiverInterface observable;
-	private Thread process;
+	// private Thread process;
+	private ProcessingThread process;
 	private static final String groupIP = "228.5.6.7";
 	private static final int port = 6789;
 	private boolean myOwnConnect = false;
-	private Timer timer = new Timer();
-	private String lastMessage = null;
-	private boolean receivedLastMessage = false;
-	private boolean iSentNickError = false;
+	// private Timer timer = new Timer();
+	// private String lastMessage = null;
+	private List<String> sentMessages = new ArrayList<>();
+	// private boolean receivedLastMessage = false;
+	private boolean sentNickError = false;
 
-	private void processRequest(DatagramPacket request) {
+	public void processRequest(DatagramPacket request) {
 		String message = new String(request.getData()).trim();
 		String[] split = message.split(" ");
 
-		if (message.equals(lastMessage)) {
-			receivedLastMessage = true;
+		// if (message.equals(lastMessage)) {
+		// receivedLastMessage = true;
+		// if (split[0].equals("disconnect")) {
+		// setDisconnected();
+		// }
+		// lastMessage = null;
+		// }
+
+		if (sentMessages.contains(message)) {
+			sentMessages.remove(message);
+			// receivedLastMessage = true;
 			if (split[0].equals("disconnect")) {
 				setDisconnected();
 			}
+			System.out.println("     - '" + message + "' Own message, ignored");
+			return;
 		}
 
 		// Ignore every message if the user is not connected
 		if (!isConnected()) {
+			System.out.println("     - Not connected, message ignored");
 			return;
 		}
 
 		// Check if the message is global
 		if (split.length <= 2) {
 			if (split[0].equals("connect")) {
-				if (myOwnConnect) {
-					myOwnConnect = false;
-				} else if (split[1].equals(connectedUser.getNick())) {
+				// if (myOwnConnect) {
+				// myOwnConnect = false;
+				// } else
+				if (split[1].equals(connectedUser.getNick())) {
 					try {
-						iSentNickError = true;
+						sentNickError = true;
 						sendCommand("error_nick " + connectedUser.getNick());
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -67,10 +84,12 @@ public class ChatClientController {
 					observable.onUserConnected(split[1]);
 				}
 			} else if (split[0].equals("disconnect")) {
-				observable.onUserDisconnected(split[1]);
+				if (!split[1].equals(connectedUser.getNick())) {
+					observable.onUserDisconnected(split[1]);
+				}
 			} else if (split[0].equals("error_nick")) {
 				// connectedUser = null;
-				if (!iSentNickError) {
+				if (split[1].equals(connectedUser.getNick()) && !sentNickError) {
 					setDisconnected();
 					this.observable.onError("ERROR nick");
 				}
@@ -141,38 +160,47 @@ public class ChatClientController {
 		this.connectedUser.setNick(nick);
 		myOwnConnect = true;
 
-		process = new Thread() {
+		// process = new Thread() {
+		//
+		// @Override
+		// public void run() {
+		// for (; !this.isInterrupted();) {
+		// try (MulticastSocket socket = new MulticastSocket(
+		// ChatClientController.port)) {
+		// InetAddress group = InetAddress
+		// .getByName(ChatClientController.groupIP);
+		// socket.joinGroup(group);
+		//
+		// for (; !this.isInterrupted();) {
+		// byte[] buffer = new byte[1024];
+		// DatagramPacket messageIn = new DatagramPacket(
+		// buffer, buffer.length);
+		//
+		// socket.receive(messageIn);
+		//
+		// if (isInterrupted()) {
+		// break;
+		// }
+		//
+		// System.out.println(" - Received a message from '"
+		// + messageIn.getAddress().getHostAddress()
+		// + ":" + messageIn.getPort() + "' -> "
+		// + new String(messageIn.getData()).trim());
+		//
+		// processRequest(messageIn);
+		// }
+		// socket.leaveGroup(group);
+		// } catch (SocketException e) {
+		// System.err.println("# Socket Error: " + e.getMessage());
+		// } catch (IOException e) {
+		// System.err.println("# IO Error: " + e.getMessage());
+		// }
+		// }
+		// }
+		// };
 
-			@Override
-			public void run() {
-				for (; !this.isInterrupted();) {
-					try (MulticastSocket socket = new MulticastSocket(
-							ChatClientController.port)) {
-						InetAddress group = InetAddress
-								.getByName(ChatClientController.groupIP);
-						socket.joinGroup(group);
-
-						byte[] buffer = new byte[1024];
-						DatagramPacket messageIn = new DatagramPacket(buffer,
-								buffer.length);
-
-						socket.receive(messageIn);
-
-						System.out.println(" - Received a message from '"
-								+ messageIn.getAddress().getHostAddress() + ":"
-								+ messageIn.getPort() + "' -> "
-								+ new String(messageIn.getData()));
-
-						processRequest(messageIn);
-						socket.leaveGroup(group);
-					} catch (SocketException e) {
-						System.err.println("# Socket Error: " + e.getMessage());
-					} catch (IOException e) {
-						System.err.println("# IO Error: " + e.getMessage());
-					}
-				}
-			}
-		};
+		process = new ProcessingThread(ChatClientController.groupIP,
+				ChatClientController.port, this);
 
 		process.start();
 		sendCommand("connect " + nick);
@@ -189,13 +217,14 @@ public class ChatClientController {
 	}
 
 	public void setDisconnected() {
-		this.connectedUser = null;
-		this.chatReceiver = null;
 		if (process != null) {
 			process.interrupt();
 		}
-		lastMessage = null;
-		iSentNickError = false;
+		this.connectedUser = null;
+		this.chatReceiver = null;
+		sentMessages = new ArrayList<>();
+		sentNickError = false;
+		myOwnConnect = false;
 	}
 
 	public void sendMessage(String message) throws IOException {
@@ -251,14 +280,15 @@ public class ChatClientController {
 		chatReceiver = null;
 	}
 
-	private void sendCommand(String command) throws IOException {
-		lastMessage = command;
+	private void sendCommand(final String command) throws IOException {
 		try (MulticastSocket socket = new MulticastSocket(0)) {
 			InetAddress group = InetAddress.getByName(groupIP);
 			socket.joinGroup(group);
 
 			DatagramPacket messageOut = new DatagramPacket(command.getBytes(),
 					command.length(), group, port);
+			// lastMessage = command;
+			sentMessages.add(command);
 			socket.send(messageOut);
 
 			System.out.println(" - Sent a message to '"
@@ -267,20 +297,27 @@ public class ChatClientController {
 					+ new String(messageOut.getData()));
 
 			socket.leaveGroup(group);
-			timer.schedule(new TimerTask() {
+			new Timer().schedule(new TimerTask() {
 
 				@Override
 				public void run() {
-					if (!receivedLastMessage) {
+					// if (!receivedLastMessage && isConnected()) {
+					// try {
+					// sendCommand(command);
+					// } catch (IOException e) {
+					// e.printStackTrace();
+					// }
+					// }
+					// receivedLastMessage = false;
+					if (sentMessages.contains(command) && isConnected()) {
 						try {
-							sendCommand(lastMessage);
+							sendCommand(command);
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
 					}
-					receivedLastMessage = false;
 				}
-			}, 500);
+			}, 1000);
 		} catch (SocketException e) {
 			System.err.println("# Socket Error: " + e.getMessage());
 		} catch (IOException e) {

@@ -562,11 +562,13 @@ public class JFrameMainWindow extends JFrame implements
 	public void onUserConnected(String user) {
 		if (!listModel.contains(user)) {
 			listModel.addElement(user);
+			listUsers.setModel(listModel);
 		}
 	}
 
 	public void onUserDisconnected(String user) {
 		listModel.removeElement(user);
+		listUsers.setModel(listModel);
 	}
 
 	@Override
