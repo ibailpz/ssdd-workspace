@@ -28,7 +28,7 @@ public class ProcessingThread extends Thread {
 
 				for (; !stop;) {
 					byte[] buffer = new byte[1024];
-					DatagramPacket messageIn = new DatagramPacket(buffer,
+					final DatagramPacket messageIn = new DatagramPacket(buffer,
 							buffer.length);
 
 					socket.receive(messageIn);
@@ -42,7 +42,13 @@ public class ProcessingThread extends Thread {
 							+ messageIn.getPort() + "' -> "
 							+ new String(messageIn.getData()).trim());
 
-					controller.processRequest(messageIn);
+					new Thread(new Runnable() {
+						
+						@Override
+						public void run() {
+							controller.processRequest(messageIn);
+						}
+					}).start();
 				}
 				socket.leaveGroup(group);
 			} catch (SocketException e) {
@@ -56,7 +62,7 @@ public class ProcessingThread extends Thread {
 	@Override
 	public void interrupt() {
 		stop = true;
-		super.interrupt();
+//		super.interrupt();
 	}
 
 }
