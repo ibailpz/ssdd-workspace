@@ -27,6 +27,7 @@ public class ChatClientController {
 	private List<String> sentMessages = new ArrayList<>();
 	// private boolean receivedLastMessage = false;
 	private boolean sentNickError = false;
+	private boolean startingChat = false;
 
 	public void processRequest(DatagramPacket request) {
 		String message = new String(request.getData()).trim();
@@ -81,6 +82,7 @@ public class ChatClientController {
 				}
 			} else if (split[0].equals("welcome_my_nick")) {
 				if (!split[1].equals(connectedUser.getNick())) {
+					observable.onConnect(true);
 					observable.onUserConnected(split[1]);
 				}
 			} else if (split[0].equals("disconnect")) {
@@ -108,15 +110,35 @@ public class ChatClientController {
 				} else if (split[0].equals("close_chat")) {
 					chatClosure(split[1]);
 				} else if (split[0].equals("accept")) {
-					this.chatReceiver = new User();
-					this.chatReceiver.setNick(split[1]);
-					this.observable.onChatRequestResponse(split[1], split[2],
-							true);
+					if (startingChat) {
+						this.chatReceiver = new User();
+						this.chatReceiver.setNick(split[1]);
+						this.observable.onChatRequestResponse(split[1],
+								split[2], true);
+						startingChat = false;
+					} else {
+						try {
+							this.chatReceiver = new User();
+							this.chatReceiver.setNick(split[1]);
+							sendChatClosure();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					}
 				} else if (split[0].equals("busy")) {
-					this.observable.onChatRequestResponse(split[1], split[2],
-							false);
+					if (startingChat) {
+						this.observable.onChatRequestResponse(split[1],
+								split[2], false);
+						startingChat = false;
+					}
 				} else if (split[0].equals("cancel_invitation")) {
-					this.observable.onInvitationCancelled(split[1], split[2]);
+					System.out.println("cancel_invitation");
+					if (startingChat) {
+						System.out.println("cancel_invitation inside");
+						this.observable.onInvitationCancelled(split[1],
+								split[2]);
+						startingChat = false;
+					}
 				}
 			}
 		}
@@ -219,12 +241,14 @@ public class ChatClientController {
 	public void setDisconnected() {
 		if (process != null) {
 			process.interrupt();
+			process = null;
 		}
 		this.connectedUser = null;
 		this.chatReceiver = null;
-		sentMessages = new ArrayList<>();
+		sentMessages.clear();
 		sentNickError = false;
 		myOwnConnect = false;
+		startingChat = false;
 	}
 
 	public void sendMessage(String message) throws IOException {
@@ -239,6 +263,7 @@ public class ChatClientController {
 	}
 
 	public void sendChatRequest(String to) throws IOException {
+		startingChat = true;
 		if (this.chatReceiver != null) {
 			sendChatClosure();
 		}
@@ -246,16 +271,19 @@ public class ChatClientController {
 	}
 
 	public void onChatRequest(String userFrom) {
+		startingChat = true;
 		// Notify the chat request details to the GUI
 		this.observable.onChatInvitation(userFrom);
 	}
 
 	public void cancelInvitation(String otherUser) throws IOException {
+		startingChat = false;
 		sendCommand("cancel_invitation " + connectedUser.getNick() + " "
 				+ otherUser);
 	}
 
 	public void acceptChatRequest(String user) throws IOException {
+		startingChat = false;
 		if (this.chatReceiver != null) {
 			sendChatClosure();
 		}
@@ -265,6 +293,7 @@ public class ChatClientController {
 	}
 
 	public void refuseChatRequest(String user) throws IOException {
+		startingChat = false;
 		sendCommand("busy " + connectedUser.getNick() + " " + user);
 	}
 

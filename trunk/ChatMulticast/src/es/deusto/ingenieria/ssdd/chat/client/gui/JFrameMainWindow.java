@@ -5,6 +5,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
@@ -30,6 +32,7 @@ import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.LayoutStyle.ComponentPlacement;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.EtchedBorder;
@@ -96,13 +99,20 @@ public class JFrameMainWindow extends JFrame implements
 				.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		listUsers.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
 		listUsers.addListSelectionListener(new ListSelectionListener() {
+
 			public void valueChanged(ListSelectionEvent arg0) {
-				selectUser();
+				// selectUser();
 			}
 		});
 
 		listModel = new DefaultListModel<>();
 		listUsers.setModel(listModel);
+		listUsers.addMouseListener(new MouseAdapter() {
+
+			public void mousePressed(MouseEvent evt) {
+				selectUser();
+			}
+		});
 
 		panelUsers.add(listUsers);
 
@@ -272,6 +282,7 @@ public class JFrameMainWindow extends JFrame implements
 
 		btnSendMsg = new JButton("Send");
 		btnSendMsg.addActionListener(new ActionListener() {
+
 			public void actionPerformed(ActionEvent arg0) {
 				btnSendClick();
 			}
@@ -291,6 +302,7 @@ public class JFrameMainWindow extends JFrame implements
 		panelSendMsg.add(scrollPaneNewMsg, BorderLayout.CENTER);
 
 		this.addWindowListener(new WindowAdapter() {
+
 			@Override
 			public void windowClosing(WindowEvent e) {
 				if (JFrameMainWindow.this.controller.isConnected()) {
@@ -350,7 +362,8 @@ public class JFrameMainWindow extends JFrame implements
 		this.txtFieldNick.setEditable(true);
 		this.listUsers.setEnabled(true);
 		this.listUsers.clearSelection();
-		this.listUsers.setModel(new DefaultListModel<String>());
+		// this.listUsers.setModel(new DefaultListModel<String>());
+		this.listModel.clear();
 		this.btnConnect.setEnabled(true);
 		this.btnConnect.setText("Connect");
 		this.btnSendMsg.setEnabled(false);
@@ -379,14 +392,17 @@ public class JFrameMainWindow extends JFrame implements
 	}
 
 	private void selectUser() {
+		System.out.println("Select user");
 		if (isProgrammatic) {
 			isProgrammatic = false;
 			return;
 		}
 		if (this.listUsers.getSelectedIndex() != -1
 				&& this.controller.getConnectedUser() != null) {
+			System.out.println("Select user - if 1");
 			// Send chat Request
 			if (!this.controller.isChatSessionOpened()) {
+				System.out.println("Select user - if 2");
 				int result = JOptionPane.showConfirmDialog(this,
 						"Do you want to start a new chat session with '"
 								+ this.listUsers.getSelectedValue() + "'",
@@ -416,9 +432,11 @@ public class JFrameMainWindow extends JFrame implements
 									}
 								}
 							});
+					waitingInvitationPane.setResizable(false);
 
 					try {
 						waitingInvitationPane.pack();
+						waitingInvitationPane.setLocationRelativeTo(null);
 						this.controller.sendChatRequest(this.listUsers
 								.getSelectedValue());
 						waitingInvitationPane.setVisible(true);
@@ -436,6 +454,7 @@ public class JFrameMainWindow extends JFrame implements
 						try {
 							controller.cancelInvitation(listUsers
 									.getSelectedValue());
+							listUsers.clearSelection();
 						} catch (IOException e) {
 							e.printStackTrace();
 							// JOptionPane.showMessageDialog(this,
@@ -451,6 +470,7 @@ public class JFrameMainWindow extends JFrame implements
 			} else if (this.controller.isChatSessionOpened()
 					&& this.listUsers.getSelectedValue().equals(
 							this.controller.getChatReceiver())) {
+				System.out.println("Select user - if 3");
 				int result = JOptionPane.showConfirmDialog(this,
 						"Do you want to close your current chat session with '"
 								+ this.controller.getChatReceiver() + "'",
@@ -543,9 +563,8 @@ public class JFrameMainWindow extends JFrame implements
 		if (connected) {
 			if (isUIConnected) {
 				return;
-			} else {
-				isUIConnected = true;
 			}
+			isUIConnected = true;
 			this.btnConnect.setEnabled(true);
 			this.btnConnect.setText("Disconnect");
 			this.btnSendMsg.setEnabled(true);
@@ -562,13 +581,13 @@ public class JFrameMainWindow extends JFrame implements
 	public void onUserConnected(String user) {
 		if (!listModel.contains(user)) {
 			listModel.addElement(user);
-			listUsers.setModel(listModel);
+			// listUsers.setModel(listModel);
 		}
 	}
 
 	public void onUserDisconnected(String user) {
 		listModel.removeElement(user);
-		listUsers.setModel(listModel);
+		// listUsers.setModel(listModel);
 	}
 
 	@Override
@@ -585,14 +604,20 @@ public class JFrameMainWindow extends JFrame implements
 
 			disconnectedUI();
 
-			JOptionPane.showMessageDialog(this,
-					"Nick in use. Please introduce another one", "Nick error",
-					JOptionPane.ERROR_MESSAGE);
+			SwingUtilities.invokeLater(new Runnable() {
+
+				@Override
+				public void run() {
+					JOptionPane.showMessageDialog(JFrameMainWindow.this,
+							"Nick in use. Please introduce another one",
+							"Nick error", JOptionPane.ERROR_MESSAGE);
+				}
+			});
 		}
 	}
 
 	@Override
-	public void onChatRequestResponse(String userFrom, String userTo,
+	public void onChatRequestResponse(final String userFrom, String userTo,
 			boolean accept) {
 		if (accept) {
 			if (waitingInvitationPane != null) {
@@ -600,7 +625,7 @@ public class JFrameMainWindow extends JFrame implements
 				waitingInvitationPane = null;
 			}
 			this.setTitle("Chat session between '"
-					+ this.controller.getConnectedUser() + "' & '" + userTo
+					+ this.controller.getConnectedUser() + "' & '" + userFrom
 					+ "'");
 		} else {
 			if (waitingInvitationPane != null) {
@@ -608,33 +633,61 @@ public class JFrameMainWindow extends JFrame implements
 				waitingInvitationPane = null;
 			}
 			this.listUsers.clearSelection();
-			JOptionPane.showMessageDialog(this, userFrom
-					+ " refused the invitation to start a chat",
-					"Invitation refused", JOptionPane.INFORMATION_MESSAGE);
+
+			SwingUtilities.invokeLater(new Runnable() {
+
+				@Override
+				public void run() {
+					JOptionPane
+							.showMessageDialog(
+									JFrameMainWindow.this,
+									userFrom
+											+ " refused the invitation to start a chat",
+									"Invitation refused",
+									JOptionPane.INFORMATION_MESSAGE);
+				}
+			});
 		}
 	}
 
 	@Override
-	public void onChatDisconnect(String user) {
-		JOptionPane.showMessageDialog(this, user + " closed the chat session",
-				"Chat closed", JOptionPane.WARNING_MESSAGE);
+	public void onChatDisconnect(final String user) {
+		SwingUtilities.invokeLater(new Runnable() {
+
+			@Override
+			public void run() {
+				JOptionPane.showMessageDialog(JFrameMainWindow.this, user
+						+ " closed the chat session", "Chat closed",
+						JOptionPane.WARNING_MESSAGE);
+			}
+		});
 		this.listUsers.clearSelection();
 		this.setTitle("Chat main window - 'Connected'");
 	}
 
 	@Override
-	public void onInvitationCancelled(String userFrom, String userTo) {
+	public void onInvitationCancelled(final String userFrom, String userTo) {
 		if (invitationPane != null) {
 			invitationPane.setVisible(false);
 			invitationPane = null;
-			JOptionPane.showMessageDialog(this, userFrom
-					+ " cancelled the invitation to start a chat",
-					"Invitation cancelled", JOptionPane.INFORMATION_MESSAGE);
+			SwingUtilities.invokeLater(new Runnable() {
+
+				@Override
+				public void run() {
+					JOptionPane
+							.showMessageDialog(
+									JFrameMainWindow.this,
+									userFrom
+											+ " cancelled the invitation to start a chat",
+									"Invitation cancelled",
+									JOptionPane.INFORMATION_MESSAGE);
+				}
+			});
 		}
 	}
 
 	@Override
-	public void onChatInvitation(String userFrom) {
+	public void onChatInvitation(final String userFrom) {
 		final JOptionPane innerPane = new JOptionPane(
 				"Would you like to start a chat session with " + userFrom + "?",
 				JOptionPane.INFORMATION_MESSAGE, JOptionPane.YES_NO_OPTION);
@@ -653,25 +706,37 @@ public class JFrameMainWindow extends JFrame implements
 		});
 
 		invitationPane.pack();
-		invitationPane.setVisible(true);
+		invitationPane.setResizable(false);
+		invitationPane.setLocationRelativeTo(null);
+		SwingUtilities.invokeLater(new Runnable() {
 
-		int value = ((Integer) innerPane.getValue()).intValue();
-		try {
-			if (value == JOptionPane.YES_OPTION) {
-				this.controller.acceptChatRequest(userFrom);
-				isProgrammatic = true;
-				this.listUsers.setSelectedValue(userFrom, true);
-				this.setTitle("Chat session between '"
-						+ this.controller.getConnectedUser() + "' & '"
-						+ userFrom + "'");
-			} else if (value == JOptionPane.NO_OPTION) {
-				this.controller.refuseChatRequest(userFrom);
+			@Override
+			public void run() {
+				invitationPane.setVisible(true);
+
+				try {
+					int value = Integer.parseInt(innerPane.getValue()
+							.toString());
+					if (value == JOptionPane.YES_OPTION) {
+						controller.acceptChatRequest(userFrom);
+						isProgrammatic = true;
+						listUsers.setSelectedValue(userFrom, true);
+						setTitle("Chat session between '"
+								+ controller.getConnectedUser() + "' & '"
+								+ userFrom + "'");
+					} else if (value == JOptionPane.NO_OPTION) {
+						controller.refuseChatRequest(userFrom);
+					}
+				} catch (IOException ex) {
+					ex.printStackTrace();
+					JOptionPane.showMessageDialog(JFrameMainWindow.this,
+							"Error connecting to the server. Try again later",
+							"Connection error", JOptionPane.ERROR_MESSAGE);
+				} catch (NumberFormatException ex) {
+					System.err.println("Handled error");
+					ex.printStackTrace();
+				}
 			}
-		} catch (IOException ex) {
-			ex.printStackTrace();
-			JOptionPane.showMessageDialog(this,
-					"Error connecting to the server. Try again later",
-					"Connection error", JOptionPane.ERROR_MESSAGE);
-		}
+		});
 	}
 }
