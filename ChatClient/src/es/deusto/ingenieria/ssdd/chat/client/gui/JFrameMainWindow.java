@@ -5,6 +5,8 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
@@ -95,7 +97,15 @@ public class JFrameMainWindow extends JFrame implements
 				.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		listUsers.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
 		listUsers.addListSelectionListener(new ListSelectionListener() {
+
 			public void valueChanged(ListSelectionEvent arg0) {
+				// selectUser();
+			}
+		});
+
+		listUsers.addMouseListener(new MouseAdapter() {
+
+			public void mousePressed(MouseEvent evt) {
 				selectUser();
 			}
 		});
