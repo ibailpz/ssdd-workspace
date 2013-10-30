@@ -37,8 +37,6 @@ import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.EtchedBorder;
 import javax.swing.border.TitledBorder;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
@@ -51,9 +49,6 @@ public class JFrameMainWindow extends JFrame implements
 
 	private static final long serialVersionUID = 1L;
 	private JPanel contentPane;
-	private JTextField txtFieldServerIP;
-	private JTextField txtFieldServerPort;
-	private JTextField txtFieldLocalPort;
 	private JTextField txtFieldNick;
 	private JButton btnConnect;
 	private JList<String> listUsers;
@@ -98,12 +93,6 @@ public class JFrameMainWindow extends JFrame implements
 		listUsers
 				.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
 		listUsers.setBorder(new EtchedBorder(EtchedBorder.LOWERED, null, null));
-		listUsers.addListSelectionListener(new ListSelectionListener() {
-
-			public void valueChanged(ListSelectionEvent arg0) {
-				// selectUser();
-			}
-		});
 
 		listModel = new DefaultListModel<>();
 		listUsers.setModel(listModel);
@@ -120,18 +109,6 @@ public class JFrameMainWindow extends JFrame implements
 		panelConnect.setBorder(new TitledBorder(null, "Connection details",
 				TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		contentPane.add(panelConnect, BorderLayout.NORTH);
-
-		JLabel lblServerIp = new JLabel("Server IP:");
-		JLabel lblServerPort = new JLabel("Server Port:");
-		JLabel lblLocalPort = new JLabel("Local Port:");
-
-		txtFieldServerIP = new JTextField();
-		txtFieldServerIP.setColumns(10);
-		txtFieldServerPort = new JTextField();
-		txtFieldServerPort.setColumns(10);
-
-		txtFieldLocalPort = new JTextField();
-		txtFieldLocalPort.setColumns(10);
 
 		JLabel lblNick = new JLabel("Nick:");
 
@@ -157,23 +134,9 @@ public class JFrameMainWindow extends JFrame implements
 												gl_panelConnect
 														.createParallelGroup(
 																Alignment.LEADING)
-														.addComponent(
-																lblServerIp)
-														.addComponent(
-																lblServerPort))
-										.addGap(21)
-										.addGroup(
-												gl_panelConnect
-														.createParallelGroup(
-																Alignment.LEADING)
 														.addGroup(
 																gl_panelConnect
 																		.createSequentialGroup()
-																		.addComponent(
-																				txtFieldServerIP,
-																				GroupLayout.PREFERRED_SIZE,
-																				GroupLayout.DEFAULT_SIZE,
-																				GroupLayout.PREFERRED_SIZE)
 																		.addGap(37)
 																		.addComponent(
 																				lblNick)
@@ -185,29 +148,7 @@ public class JFrameMainWindow extends JFrame implements
 																				GroupLayout.PREFERRED_SIZE)
 																		.addGap(28)
 																		.addComponent(
-																				btnConnect))
-														.addGroup(
-																gl_panelConnect
-																		.createSequentialGroup()
-																		.addComponent(
-																				txtFieldServerPort,
-																				GroupLayout.PREFERRED_SIZE,
-																				GroupLayout.DEFAULT_SIZE,
-																				GroupLayout.PREFERRED_SIZE)
-																		.addGap(37)
-																		.addComponent(
-																				lblLocalPort)
-																		.addGap(18)
-																		.addComponent(
-																				txtFieldLocalPort,
-																				GroupLayout.PREFERRED_SIZE,
-																				115,
-																				GroupLayout.PREFERRED_SIZE)))
-										// .addComponent(txtFieldServerPort,
-										// GroupLayout.PREFERRED_SIZE,
-										// GroupLayout.DEFAULT_SIZE,
-										// GroupLayout.PREFERRED_SIZE))
-										.addContainerGap(302, Short.MAX_VALUE)));
+																				btnConnect)))));
 		gl_panelConnect
 				.setVerticalGroup(gl_panelConnect
 						.createParallelGroup(Alignment.LEADING)
@@ -219,13 +160,6 @@ public class JFrameMainWindow extends JFrame implements
 												gl_panelConnect
 														.createParallelGroup(
 																Alignment.BASELINE)
-														.addComponent(
-																lblServerIp)
-														.addComponent(
-																txtFieldServerIP,
-																GroupLayout.PREFERRED_SIZE,
-																GroupLayout.DEFAULT_SIZE,
-																GroupLayout.PREFERRED_SIZE)
 														.addComponent(lblNick)
 														.addComponent(
 																btnConnect)
@@ -236,24 +170,6 @@ public class JFrameMainWindow extends JFrame implements
 																GroupLayout.PREFERRED_SIZE))
 										.addPreferredGap(
 												ComponentPlacement.RELATED)
-										.addGroup(
-												gl_panelConnect
-														.createParallelGroup(
-																Alignment.BASELINE)
-														.addComponent(
-																lblServerPort)
-														.addComponent(
-																txtFieldServerPort,
-																GroupLayout.PREFERRED_SIZE,
-																GroupLayout.DEFAULT_SIZE,
-																GroupLayout.PREFERRED_SIZE)
-														.addComponent(
-																lblLocalPort)
-														.addComponent(
-																txtFieldLocalPort,
-																GroupLayout.PREFERRED_SIZE,
-																GroupLayout.DEFAULT_SIZE,
-																GroupLayout.PREFERRED_SIZE))
 										.addContainerGap(15, Short.MAX_VALUE)));
 		panelConnect.setLayout(gl_panelConnect);
 
@@ -316,9 +232,7 @@ public class JFrameMainWindow extends JFrame implements
 
 	private void btnConnectClick() {
 		if (!this.controller.isConnected()) {
-			if (this.txtFieldServerIP.getText().trim().isEmpty()
-					|| this.txtFieldServerIP.getText().trim().isEmpty()
-					|| this.txtFieldNick.getText().trim().isEmpty()) {
+			if (this.txtFieldNick.getText().trim().isEmpty()) {
 				JOptionPane.showMessageDialog(this,
 						"Some connection parameters are empty",
 						"Connection initializarion error",
@@ -332,18 +246,12 @@ public class JFrameMainWindow extends JFrame implements
 
 				return;
 			}
-
-			this.txtFieldServerIP.setEditable(false);
-			this.txtFieldServerPort.setEditable(false);
-			this.txtFieldLocalPort.setEditable(false);
 			this.txtFieldNick.setEditable(false);
 			this.btnConnect.setEnabled(false);
 
 			// Connect to the server
 			try {
-				this.controller.connect(this.txtFieldServerIP.getText(),
-						Integer.parseInt(this.txtFieldServerPort.getText()),
-						this.txtFieldNick.getText());
+				this.controller.connect(this.txtFieldNick.getText());
 			} catch (IOException e) {
 				e.printStackTrace();
 				JOptionPane.showMessageDialog(this,
@@ -356,13 +264,9 @@ public class JFrameMainWindow extends JFrame implements
 	}
 
 	private void disconnectedUI() {
-		this.txtFieldServerIP.setEditable(true);
-		this.txtFieldServerPort.setEditable(true);
-		this.txtFieldLocalPort.setEditable(true);
 		this.txtFieldNick.setEditable(true);
 		this.listUsers.setEnabled(true);
 		this.listUsers.clearSelection();
-		// this.listUsers.setModel(new DefaultListModel<String>());
 		this.listModel.clear();
 		this.btnConnect.setEnabled(true);
 		this.btnConnect.setText("Connect");
@@ -457,10 +361,6 @@ public class JFrameMainWindow extends JFrame implements
 							listUsers.clearSelection();
 						} catch (IOException e) {
 							e.printStackTrace();
-							// JOptionPane.showMessageDialog(this,
-							// "Chat cannot be started. Try again later",
-							// "Error sending chat request",
-							// JOptionPane.ERROR_MESSAGE);
 						}
 					}
 				} else {
@@ -581,13 +481,11 @@ public class JFrameMainWindow extends JFrame implements
 	public void onUserConnected(String user) {
 		if (!listModel.contains(user)) {
 			listModel.addElement(user);
-			// listUsers.setModel(listModel);
 		}
 	}
 
 	public void onUserDisconnected(String user) {
 		listModel.removeElement(user);
-		// listUsers.setModel(listModel);
 	}
 
 	@Override

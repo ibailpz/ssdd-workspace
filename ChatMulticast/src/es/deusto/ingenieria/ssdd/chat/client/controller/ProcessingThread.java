@@ -62,7 +62,6 @@ public class ProcessingThread extends Thread {
 	@Override
 	public void interrupt() {
 		stop = true;
-//		super.interrupt();
 	}
 
 }
