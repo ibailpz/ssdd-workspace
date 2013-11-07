@@ -2,13 +2,19 @@ package es.deusto.ingenieria.ssdd.chat.client.controller;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.InetAddress;
-import java.net.MulticastSocket;
-import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
+
+import javax.jms.JMSException;
+import javax.jms.Message;
+import javax.jms.MessageListener;
+import javax.jms.Session;
+import javax.jms.TextMessage;
+import javax.jms.Topic;
+import javax.jms.TopicConnection;
+import javax.jms.TopicConnectionFactory;
+import javax.jms.TopicPublisher;
+import javax.jms.TopicSession;
+import javax.naming.Context;
+import javax.naming.InitialContext;
 
 import es.deusto.ingenieria.ssdd.chat.data.User;
 
@@ -17,25 +23,18 @@ public class ChatClientController {
 	private User connectedUser;
 	private User chatReceiver;
 	private MessageReceiverInterface observable;
-	private ProcessingThread process;
-	private static final String groupIP = "228.5.6.7";
-	private static final int port = 6789;
-	private List<String> sentMessages = new ArrayList<>();
-	private boolean sentNickError = false;
-	private boolean startingChat = false;
+	private TopicProcessingThread process;
+	private String connectionFactoryName = "TopicConnectionFactory";
+	private String topicJNDIName = "ssdd.topic";
+	private TopicConnection topicConnection = null;
+	private TopicSession topicSession = null;
+	private TopicPublisher topicPublisher = null;
+	private boolean errorNickReceived = false;
+	private boolean delayPassed = false;
 
 	public void processRequest(DatagramPacket request) {
 		String message = new String(request.getData()).trim();
 		String[] split = message.split(" ");
-
-		if (sentMessages.contains(message)) {
-			sentMessages.remove(message);
-			if (split[0].equals("disconnect")) {
-				setDisconnected();
-			}
-			System.out.println("     - '" + message + "' Own message, ignored");
-			return;
-		}
 
 		// Ignore every message if the user is not connected
 		if (!isConnected()) {
@@ -48,7 +47,6 @@ public class ChatClientController {
 			if (split[0].equals("connect")) {
 				if (split[1].equals(connectedUser.getNick())) {
 					try {
-						sentNickError = true;
 						sendCommand("error_nick " + connectedUser.getNick());
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -73,7 +71,7 @@ public class ChatClientController {
 					observable.onUserDisconnected(split[1]);
 				}
 			} else if (split[0].equals("error_nick")) {
-				if (split[1].equals(connectedUser.getNick()) && !sentNickError) {
+				if (split[1].equals(connectedUser.getNick())) {
 					setDisconnected();
 					this.observable.onError("ERROR nick");
 				}
@@ -92,34 +90,19 @@ public class ChatClientController {
 				} else if (split[0].equals("close_chat")) {
 					chatClosure(split[1]);
 				} else if (split[0].equals("accept")) {
-					if (startingChat) {
-						this.chatReceiver = new User();
-						this.chatReceiver.setNick(split[1]);
-						this.observable.onChatRequestResponse(split[1],
-								split[2], true);
-						startingChat = false;
-					} else {
-						try {
-							this.chatReceiver = new User();
-							this.chatReceiver.setNick(split[1]);
-							sendChatClosure();
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
+					this.chatReceiver = new User();
+					this.chatReceiver.setNick(split[1]);
+					this.observable.onChatRequestResponse(split[1], split[2],
+							true);
+
 				} else if (split[0].equals("busy")) {
-					if (startingChat) {
-						this.observable.onChatRequestResponse(split[1],
-								split[2], false);
-						startingChat = false;
-					}
+					this.observable.onChatRequestResponse(split[1], split[2],
+							false);
+
 				} else if (split[0].equals("cancel_invitation")) {
 					System.out.println("cancel_invitation");
-					if (startingChat) {
-						this.observable.onInvitationCancelled(split[1],
-								split[2]);
-						startingChat = false;
-					}
+					this.observable.onInvitationCancelled(split[1], split[2]);
+
 				}
 			}
 		}
@@ -157,16 +140,33 @@ public class ChatClientController {
 		this.observable = null;
 	}
 
-	public void connect(final String nick)
-			throws IOException {
+	public void connect(final String nick) throws Exception {
 		this.connectedUser = new User();
 		this.connectedUser.setNick(nick);
 
-		process = new ProcessingThread(ChatClientController.groupIP,
-				ChatClientController.port, this);
-
+		process = new TopicProcessingThread(this, nick);
 		process.start();
-		sendCommand("connect " + nick);
+		
+		// JNDI Initial Context
+		Context ctx = new InitialContext();
+		// Connection Factory
+		TopicConnectionFactory topicConnectionFactory = (TopicConnectionFactory) ctx
+				.lookup(connectionFactoryName);
+		// Message Destination
+		Topic myTopic = (Topic) ctx.lookup(topicJNDIName);
+		// Connection
+		topicConnection = topicConnectionFactory.createTopicConnection();
+		System.out.println("- Topic Connection created!");
+		// Session
+		topicSession = topicConnection.createTopicSession(false,
+				Session.AUTO_ACKNOWLEDGE);
+		System.out.println("- Topic Session created!");
+		// Message Publisher
+		topicPublisher = topicSession.createPublisher(myTopic);
+		System.out.println("- TopicPublisher created!");
+
+		sendCommandTopic("connect " + nick, true, null);
+		
 	}
 
 	public void disconnect() {
@@ -175,6 +175,7 @@ public class ChatClientController {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		setDisconnected();
 	}
 
 	public void setDisconnected() {
@@ -182,11 +183,19 @@ public class ChatClientController {
 			process.interrupt();
 			process = null;
 		}
+		// Close resources
+		try {
+			topicPublisher.close();
+			topicSession.close();
+			topicConnection.close();
+		} catch (JMSException e) {
+			e.printStackTrace();
+		}
+		topicPublisher = null;
+		topicSession = null;
+		topicConnection = null;
 		this.connectedUser = null;
 		this.chatReceiver = null;
-		sentMessages.clear();
-		sentNickError = false;
-		startingChat = false;
 	}
 
 	public void sendMessage(String message) throws IOException {
@@ -201,7 +210,6 @@ public class ChatClientController {
 	}
 
 	public void sendChatRequest(String to) throws IOException {
-		startingChat = true;
 		if (this.chatReceiver != null) {
 			sendChatClosure();
 		}
@@ -209,19 +217,16 @@ public class ChatClientController {
 	}
 
 	public void onChatRequest(String userFrom) {
-		startingChat = true;
 		// Notify the chat request details to the GUI
 		this.observable.onChatInvitation(userFrom);
 	}
 
 	public void cancelInvitation(String otherUser) throws IOException {
-		startingChat = false;
 		sendCommand("cancel_invitation " + connectedUser.getNick() + " "
 				+ otherUser);
 	}
 
 	public void acceptChatRequest(String user) throws IOException {
-		startingChat = false;
 		if (this.chatReceiver != null) {
 			sendChatClosure();
 		}
@@ -231,7 +236,6 @@ public class ChatClientController {
 	}
 
 	public void refuseChatRequest(String user) throws IOException {
-		startingChat = false;
 		sendCommand("busy " + connectedUser.getNick() + " " + user);
 	}
 
@@ -248,38 +252,62 @@ public class ChatClientController {
 	}
 
 	private void sendCommand(final String command) throws IOException {
-		try (MulticastSocket socket = new MulticastSocket(0)) {
-			InetAddress group = InetAddress.getByName(groupIP);
-			socket.joinGroup(group);
+		/*
+		 * try (MulticastSocket socket = new MulticastSocket(0)) { InetAddress
+		 * group = InetAddress.getByName(groupIP); socket.joinGroup(group);
+		 * 
+		 * DatagramPacket messageOut = new DatagramPacket(command.getBytes(),
+		 * command.length(), group, port); sentMessages.add(command);
+		 * socket.send(messageOut);
+		 * 
+		 * System.out.println(" - Sent a message to '" +
+		 * messageOut.getAddress().getHostAddress() + ":" + messageOut.getPort()
+		 * + "' -> " + new String(messageOut.getData()));
+		 * 
+		 * socket.leaveGroup(group); new Timer().schedule(new TimerTask() {
+		 * 
+		 * @Override public void run() { if (sentMessages.contains(command) &&
+		 * isConnected()) { try { sendCommand(command); } catch (IOException e)
+		 * { e.printStackTrace(); } } } }, 1000); } catch (SocketException e) {
+		 * System.err.println("# Socket Error: " + e.getMessage()); } catch
+		 * (IOException e) { System.err.println("# IO Error: " +
+		 * e.getMessage()); }
+		 */
+	}
 
-			DatagramPacket messageOut = new DatagramPacket(command.getBytes(),
-					command.length(), group, port);
-			sentMessages.add(command);
-			socket.send(messageOut);
-
-			System.out.println(" - Sent a message to '"
-					+ messageOut.getAddress().getHostAddress() + ":"
-					+ messageOut.getPort() + "' -> "
-					+ new String(messageOut.getData()));
-
-			socket.leaveGroup(group);
-			new Timer().schedule(new TimerTask() {
-
-				@Override
-				public void run() {
-					if (sentMessages.contains(command) && isConnected()) {
-						try {
-							sendCommand(command);
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					}
-				}
-			}, 1000);
-		} catch (SocketException e) {
-			System.err.println("# Socket Error: " + e.getMessage());
-		} catch (IOException e) {
-			System.err.println("# IO Error: " + e.getMessage());
+	private void sendCommandTopic(String command, boolean all, String nick)
+			throws Exception {
+		// Text Message
+		TextMessage textMessage = topicSession.createTextMessage();
+		// Message Properties
+		if (all) {
+			textMessage.setBooleanProperty("everyone_filter", true);
+		} else {
+			textMessage.setBooleanProperty("everyone_filter", false);
+			textMessage.setStringProperty("target_user", nick);
 		}
+		// Message Body
+		textMessage.setText(command);
+
+		// Publish the Messages
+		topicPublisher.publish(textMessage);
+		System.out.println("- TextMessage published in the Topic!");
+
+	}
+
+	public boolean isErrorNickReceived() {
+		return errorNickReceived;
+	}
+
+	public void setErrorNickReceived() {
+		this.errorNickReceived = true;
+	}
+
+	public boolean isDelayPassed() {
+		return delayPassed;
+	}
+
+	public void setDelayPassed() {
+		this.delayPassed = true;
 	}
 }
