@@ -252,7 +252,7 @@ public class JFrameMainWindow extends JFrame implements
 			// Connect to the server
 			try {
 				this.controller.connect(this.txtFieldNick.getText());
-			} catch (IOException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 				JOptionPane.showMessageDialog(this,
 						"Connection cannot be established. Try again later",
