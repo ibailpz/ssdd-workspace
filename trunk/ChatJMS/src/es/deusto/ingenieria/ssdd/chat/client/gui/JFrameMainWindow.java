@@ -11,7 +11,6 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -282,7 +281,7 @@ public class JFrameMainWindow extends JFrame implements
 		if (this.controller.isChatSessionOpened()) {
 			try {
 				this.controller.sendChatClosure();
-			} catch (IOException e1) {
+			} catch (Exception e1) {
 				e1.printStackTrace();
 			}
 			try {
@@ -344,7 +343,7 @@ public class JFrameMainWindow extends JFrame implements
 						this.controller.sendChatRequest(this.listUsers
 								.getSelectedValue());
 						waitingInvitationPane.setVisible(true);
-					} catch (IOException e1) {
+					} catch (Exception e1) {
 						e1.printStackTrace();
 						waitingInvitationPane.setVisible(false);
 						JOptionPane.showMessageDialog(this,
@@ -359,7 +358,7 @@ public class JFrameMainWindow extends JFrame implements
 							controller.cancelInvitation(listUsers
 									.getSelectedValue());
 							listUsers.clearSelection();
-						} catch (IOException e) {
+						} catch (Exception e) {
 							e.printStackTrace();
 						}
 					}
@@ -379,7 +378,7 @@ public class JFrameMainWindow extends JFrame implements
 				if (result == JOptionPane.OK_OPTION) {
 					try {
 						this.controller.sendChatClosure();
-					} catch (IOException e) {
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
 					this.listUsers.clearSelection();
@@ -405,7 +404,7 @@ public class JFrameMainWindow extends JFrame implements
 				this.controller.sendMessage(message);
 				this.appendSentMessageToHistory();
 				this.textAreaSendMsg.setText("");
-			} catch (IOException ex) {
+			} catch (Exception ex) {
 				JOptionPane.showMessageDialog(this,
 						"Message can't be delivered. Try again later",
 						"Error sending a message", JOptionPane.ERROR_MESSAGE);
@@ -625,14 +624,14 @@ public class JFrameMainWindow extends JFrame implements
 					} else if (value == JOptionPane.NO_OPTION) {
 						controller.refuseChatRequest(userFrom);
 					}
-				} catch (IOException ex) {
+				} catch (NumberFormatException ex) {
+					System.err.println("Handled error");
+					ex.printStackTrace();
+				} catch (Exception ex) {
 					ex.printStackTrace();
 					JOptionPane.showMessageDialog(JFrameMainWindow.this,
 							"Error connecting to the server. Try again later",
 							"Connection error", JOptionPane.ERROR_MESSAGE);
-				} catch (NumberFormatException ex) {
-					System.err.println("Handled error");
-					ex.printStackTrace();
 				}
 			}
 		});
