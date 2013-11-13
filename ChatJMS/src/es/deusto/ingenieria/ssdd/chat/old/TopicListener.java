@@ -1,4 +1,4 @@
-package es.deusto.ingenieria.ssdd.chat.client.controller;
+package es.deusto.ingenieria.ssdd.chat.old;
 
 import java.util.Enumeration;
 
