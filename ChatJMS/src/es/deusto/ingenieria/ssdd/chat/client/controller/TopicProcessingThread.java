@@ -10,6 +10,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 
 
+
 public class TopicProcessingThread extends Thread {
 
 	private ChatClientController controller;
