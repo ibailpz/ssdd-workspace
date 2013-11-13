@@ -1,4 +1,4 @@
-package es.deusto.ingenieria.ssdd.chat.client.controller;
+package es.deusto.ingenieria.ssdd.chat.old;
 
 import javax.jms.Session;
 import javax.jms.Topic;
@@ -8,6 +8,8 @@ import javax.jms.TopicSession;
 import javax.jms.TopicSubscriber;
 import javax.naming.Context;
 import javax.naming.InitialContext;
+
+import es.deusto.ingenieria.ssdd.chat.client.controller.ChatClientController;
 
 
 

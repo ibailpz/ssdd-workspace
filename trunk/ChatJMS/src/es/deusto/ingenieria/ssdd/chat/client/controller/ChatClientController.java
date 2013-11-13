@@ -23,6 +23,7 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import es.deusto.ingenieria.ssdd.chat.data.User;
+import es.deusto.ingenieria.ssdd.chat.old.TopicProcessingThread;
 
 public class ChatClientController {
 
