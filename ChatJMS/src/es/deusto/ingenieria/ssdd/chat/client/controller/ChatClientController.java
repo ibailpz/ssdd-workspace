@@ -31,7 +31,7 @@ public class ChatClientController {
 	private User chatReceiver;
 	private MessageReceiverInterface observable;
 
-//	private TopicProcessingThread process;
+	// private TopicProcessingThread process;
 	private String connectionFactoryName = "TopicConnectionFactory";
 	private String topicJNDIName = "ssdd.topic";
 	private TopicConnection topicConnection = null;
@@ -41,8 +41,8 @@ public class ChatClientController {
 
 	private boolean errorNickReceived = false;
 	private boolean delayPassed = false;
-	
-	private ArrayList<String> myMessages = new ArrayList<>();	
+
+	private ArrayList<String> myMessages = new ArrayList<>();
 
 	private String connectionQueueFactoryName = "QueueConnectionFactory";
 	private String queueJNDIName = "dynamicQueues/ssdd.queue.";
@@ -114,22 +114,25 @@ public class ChatClientController {
 			public void onMessage(Message message) {
 				System.out.println(message);
 				try {
-					if(myMessages.contains(((TextMessage) message).getText())){
-						myMessages.remove(((TextMessage) message).getText());
+					String text = ((TextMessage) message).getText();
+					if (myMessages.contains(text)) {
+						myMessages.remove(text);
+						if (text.startsWith("disconnect")) {
+							setDisconnected();
+						}
 						return;
 					}
-					String split[] = ((TextMessage) message).getText().split(
-							" ");
+					String split[] = text.split(" ");
 					if (split[0].equals("connect")) {
 						if (split[1].equals(connectedUser.getNick())) {
-							if(delayPassed){
+							if (delayPassed) {
 								try {
-									sendCommandTopic(
-											"error_nick " + connectedUser.getNick(),
-											false, split[1]);
+									sendCommandTopic("error_nick "
+											+ connectedUser.getNick(), false,
+											split[1]);
 								} catch (IOException e) {
 									e.printStackTrace();
-								}								
+								}
 							}
 						} else {
 							try {
@@ -200,15 +203,15 @@ public class ChatClientController {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		setDisconnected();
+		// setDisconnected();
 	}
 
 	public void setDisconnected() {
 		myMessages.clear();
-//		if (process != null) {
-//			process.interrupt();
-//			process = null;
-//		}
+		// if (process != null) {
+		// process.interrupt();
+		// process = null;
+		// }
 		// Close resources
 		try {
 			topicPublisher.close();
@@ -309,7 +312,7 @@ public class ChatClientController {
 		}
 		// Message Body
 		textMessage.setText(command);
-		
+
 		myMessages.add(command);
 
 		// Publish the Messages
