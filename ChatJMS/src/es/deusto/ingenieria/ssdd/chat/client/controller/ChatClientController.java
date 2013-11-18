@@ -1,6 +1,7 @@
 package es.deusto.ingenieria.ssdd.chat.client.controller;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -41,6 +42,8 @@ public class ChatClientController {
 
 	private boolean errorNickReceived = false;
 	private boolean delayPassed = false;
+	
+	private ArrayList<String> myMessages = new ArrayList<>();	
 
 	private String connectionQueueFactoryName = "QueueConnectionFactory";
 	private String queueJNDIName = "dynamicQueues/ssdd.queue.";
@@ -110,17 +113,24 @@ public class ChatClientController {
 		topicSubscriber.setMessageListener(new MessageListener() {
 			@Override
 			public void onMessage(Message message) {
+				System.out.println(message);
 				try {
+					if(myMessages.contains(((TextMessage) message).getText())){
+						myMessages.remove(((TextMessage) message).getText());
+						return;
+					}
 					String split[] = ((TextMessage) message).getText().split(
 							" ");
 					if (split[0].equals("connect")) {
 						if (split[1].equals(connectedUser.getNick())) {
-							try {
-								sendCommandTopic(
-										"error_nick " + connectedUser.getNick(),
-										false, split[1]);
-							} catch (IOException e) {
-								e.printStackTrace();
+							if(delayPassed){
+								try {
+									sendCommandTopic(
+											"error_nick " + connectedUser.getNick(),
+											false, split[1]);
+								} catch (IOException e) {
+									e.printStackTrace();
+								}								
 							}
 						} else {
 							try {
@@ -195,6 +205,7 @@ public class ChatClientController {
 	}
 
 	public void setDisconnected() {
+		myMessages.clear();
 		if (process != null) {
 			process.interrupt();
 			process = null;
@@ -279,13 +290,14 @@ public class ChatClientController {
 		closeQueue();
 	}
 
-	public void chatClosure(String userFrom) {
+	public void chatClosure(String userFrom) throws Exception {
 		// Notify the chat request details to the GUI
 		this.observable.onChatDisconnect(chatReceiver.getNick());
 		chatReceiver = null;
+		closeQueue();
 	}
 
-	private void sendCommandTopic(String command, boolean all, String nick)
+	private void sendCommandTopic(String command, boolean all, String nickTo)
 			throws Exception {
 		// Text Message
 		TextMessage textMessage = topicSession.createTextMessage();
@@ -294,10 +306,12 @@ public class ChatClientController {
 			textMessage.setBooleanProperty("everyone_filter", true);
 		} else {
 			textMessage.setBooleanProperty("everyone_filter", false);
-			textMessage.setStringProperty("target_user", nick);
+			textMessage.setStringProperty("target_user", nickTo);
 		}
 		// Message Body
 		textMessage.setText(command);
+		
+		myMessages.add(command);
 
 		// Publish the Messages
 		topicPublisher.publish(textMessage);
@@ -400,8 +414,8 @@ public class ChatClientController {
 		// Send the Messages
 		queueSender.send(textMessage);
 	}
-	
-	private void closeQueue() throws Exception{
+
+	private void closeQueue() throws Exception {
 		queueSender.close();
 		queueSender = null;
 	}

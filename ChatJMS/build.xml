@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project basedir="." name="IndirectCommunication">
+	<property environment="env"/>
+	<property name="source.dir" location="src"/>
+   	<property name="build.dir" location="bin"/>
+	<property name="lib.dir" location="lib"/>
+	<property name="conf.dir" location="conf"/>
+	<property name="log.dir" location="log"/>
+	
+    <path id="classpath">
+        <fileset dir="${lib.dir}">
+            <include name="**/*.jar"/>
+        </fileset>
+        <pathelement location="${build.dir}"/>
+    	<pathelement location="${conf.dir}"/>
+    </path>	
+	
+	<target name="build" description="Builds the project">
+		<delete dir="${build.dir}"/>
+		<mkdir dir="${build.dir}"/>
+		<javac srcdir="${source.dir}" destdir="${build.dir}" classpathref="classpath" fork="true" includeAntRuntime="no"/>
+    </target>
+	
+	<target name="Main" depends="build" description="Runs Main">
+		<java classname="es.deusto.ingenieria.ssdd.chat.client.main.MainProgram" classpathref="classpath" fork="true">
+			<jvmarg value="-Dlog4j.configuration=log4j.properties"/>
+        </java>
+    </target>
+</project>
