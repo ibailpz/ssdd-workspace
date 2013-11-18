@@ -24,7 +24,6 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 
 import es.deusto.ingenieria.ssdd.chat.data.User;
-import es.deusto.ingenieria.ssdd.chat.old.TopicProcessingThread;
 
 public class ChatClientController {
 
@@ -32,7 +31,7 @@ public class ChatClientController {
 	private User chatReceiver;
 	private MessageReceiverInterface observable;
 
-	private TopicProcessingThread process;
+//	private TopicProcessingThread process;
 	private String connectionFactoryName = "TopicConnectionFactory";
 	private String topicJNDIName = "ssdd.topic";
 	private TopicConnection topicConnection = null;
@@ -206,10 +205,10 @@ public class ChatClientController {
 
 	public void setDisconnected() {
 		myMessages.clear();
-		if (process != null) {
-			process.interrupt();
-			process = null;
-		}
+//		if (process != null) {
+//			process.interrupt();
+//			process = null;
+//		}
 		// Close resources
 		try {
 			topicPublisher.close();
