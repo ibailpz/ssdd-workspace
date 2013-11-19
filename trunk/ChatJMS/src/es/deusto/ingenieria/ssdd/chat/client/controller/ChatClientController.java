@@ -3,6 +3,7 @@ package es.deusto.ingenieria.ssdd.chat.client.controller;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import javax.jms.InvalidClientIDException;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageListener;
@@ -38,9 +39,6 @@ public class ChatClientController {
 	private TopicSession topicSession = null;
 	private TopicPublisher topicPublisher = null;
 	private TopicSubscriber topicSubscriber = null;
-
-	private boolean errorNickReceived = false;
-	private boolean delayPassed = false;
 
 	private ArrayList<String> myMessages = new ArrayList<>();
 
@@ -84,59 +82,44 @@ public class ChatClientController {
 	}
 
 	public void connect(final String nick) throws Exception {
+		try {
+			// JNDI Initial Context
+			Context ctx = new InitialContext();
+			// Connection Factory
+			TopicConnectionFactory topicConnectionFactory = (TopicConnectionFactory) ctx
+					.lookup(connectionFactoryName);
+			// Message Destination
+			Topic myTopic = (Topic) ctx.lookup(topicJNDIName);
 
-		// process = new TopicProcessingThread(this, nick);
-		// process.start();
-
-		// JNDI Initial Context
-		Context ctx = new InitialContext();
-		// Connection Factory
-		TopicConnectionFactory topicConnectionFactory = (TopicConnectionFactory) ctx
-				.lookup(connectionFactoryName);
-		// Message Destination
-		Topic myTopic = (Topic) ctx.lookup(topicJNDIName);
-
-		// Connections
-		topicConnection = topicConnectionFactory.createTopicConnection();
-		topicConnection.setClientID(nick);
-		System.out.println("- Topic Connection created!");
-		// Sessions
-		topicSession = topicConnection.createTopicSession(false,
-				Session.AUTO_ACKNOWLEDGE);
-		System.out.println("- Topic Session created!");
-		// Topic Listener
-		topicSubscriber = topicSession
-				.createSubscriber(myTopic,
-						"everyone_filter = true OR target_user = '" + nick
-								+ "'", false);
-		topicSubscriber.setMessageListener(new MessageListener() {
-			@Override
-			public void onMessage(Message message) {
-				System.out.println(message);
-				try {
-					String text = ((TextMessage) message).getText();
-					if (myMessages.contains(text)) {
-						myMessages.remove(text);
-						if (text.startsWith("disconnect")) {
-							setDisconnected();
-						}
-						return;
-					}
-					String split[] = text.split(" ");
-					if (split[0].equals("connect")) {
-						if (split[1].equals(connectedUser.getNick())) {
-							if (delayPassed) {
-								try {
-									sendCommandTopic("error_nick "
-											+ connectedUser.getNick(), false,
-											split[1]);
-								} catch (IOException e) {
-									e.printStackTrace();
-								}
+			// Connections
+			topicConnection = topicConnectionFactory.createTopicConnection();
+			topicConnection.setClientID(nick);
+			System.out.println("- Topic Connection created!");
+			// Sessions
+			topicSession = topicConnection.createTopicSession(false,
+					Session.AUTO_ACKNOWLEDGE);
+			System.out.println("- Topic Session created!");
+			// Topic Listener
+			topicSubscriber = topicSession.createSubscriber(myTopic,
+					"everyone_filter = true OR target_user = '" + nick + "'",
+					false);
+			topicSubscriber.setMessageListener(new MessageListener() {
+				@Override
+				public void onMessage(Message message) {
+					System.out.println(message);
+					observable.onConnect(true);
+					try {
+						String text = ((TextMessage) message).getText();
+						if (myMessages.contains(text)) {
+							myMessages.remove(text);
+							if (text.startsWith("disconnect")) {
+								setDisconnected();
 							}
-						} else {
+							return;
+						}
+						String split[] = text.split(" ");
+						if (split[0].equals("connect")) {
 							try {
-								observable.onConnect(true);
 								sendCommandTopic("welcome_my_nick "
 										+ connectedUser.getNick(), false,
 										split[1]);
@@ -144,56 +127,39 @@ public class ChatClientController {
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
+						} else if (split[0].equals("welcome_my_nick")) {
+							observable.onUserConnected(split[1]);
+						} else if (split[0].equals("disconnect")) {
+							observable.onUserDisconnected(split[1]);
 						}
-					} else if (split[0].equals("welcome_my_nick")) {
-						observable.onConnect(true);
-						observable.onUserConnected(split[1]);
-					} else if (split[0].equals("disconnect")) {
-						observable.onUserDisconnected(split[1]);
-					} else if (split[0].equals("error_nick")) {
-						if (!delayPassed) {
-							setDisconnected();
-							observable.onError("ERROR nick");
-							errorNickReceived = true;
-						}
+					} catch (Exception e) {
+						e.printStackTrace();
 					}
-				} catch (Exception e) {
-					e.printStackTrace();
 				}
-			}
-		});
-		// Begin message delivery
-		topicConnection.start();
+			});
+			// Begin message delivery
+			topicConnection.start();
 
-		// Connection
-		topicConnection = topicConnectionFactory.createTopicConnection();
-		System.out.println("- Topic Connection created!");
-		// Session
-		topicSession = topicConnection.createTopicSession(false,
-				Session.AUTO_ACKNOWLEDGE);
-		System.out.println("- Topic Session created!");
-		// Message Publisher
-		topicPublisher = topicSession.createPublisher(myTopic);
-		System.out.println("- TopicPublisher created!");
+			// Connection
+			topicConnection = topicConnectionFactory.createTopicConnection();
+			System.out.println("- Topic Connection created!");
+			// Session
+			topicSession = topicConnection.createTopicSession(false,
+					Session.AUTO_ACKNOWLEDGE);
+			System.out.println("- Topic Session created!");
+			// Message Publisher
+			topicPublisher = topicSession.createPublisher(myTopic);
+			System.out.println("- TopicPublisher created!");
 
-		sendCommandTopic("connect " + nick, true, null);
+			sendCommandTopic("connect " + nick, true, null);
 
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					Thread.sleep(5000);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-				if (!errorNickReceived) {
-					delayPassed = true;
-					connectedUser = new User();
-					connectedUser.setNick(nick);
-					createQueue();
-				}
-			}
-		}).start();
+			connectedUser = new User();
+			connectedUser.setNick(nick);
+			createQueue();
+		} catch (InvalidClientIDException e) {
+			// e.printStackTrace();
+			this.observable.onError("ERROR nick");
+		}
 	}
 
 	public void disconnect() {
@@ -203,20 +169,16 @@ public class ChatClientController {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		// setDisconnected();
 	}
 
 	public void setDisconnected() {
 		myMessages.clear();
-		// if (process != null) {
-		// process.interrupt();
-		// process = null;
-		// }
-		// Close resources
+		this.connectedUser = null;
+		this.chatReceiver = null;
 		try {
 			topicPublisher.close();
 			topicSubscriber.close();
-			topicSession.unsubscribe(connectedUser.getNick());
+			// topicSession.unsubscribe(connectedUser.getNick());
 			topicSession.close();
 			topicConnection.close();
 			queueSession.close();
@@ -232,8 +194,6 @@ public class ChatClientController {
 		queueReceiver = null;
 		queueSession = null;
 		queueConnection = null;
-		this.connectedUser = null;
-		this.chatReceiver = null;
 	}
 
 	public void sendMessage(String message) throws Exception {
@@ -255,14 +215,9 @@ public class ChatClientController {
 		sendCommandQueue("invitation " + connectedUser.getNick() + " " + to);
 	}
 
-	public void onChatRequest(String userFrom) {
-		try {
-			createQueueFor(userFrom);
-			// Notify the chat request details to the GUI
-			this.observable.onChatInvitation(userFrom);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+	public void onChatRequest(String userFrom) throws Exception {
+		// Notify the chat request details to the GUI
+		this.observable.onChatInvitation(userFrom);
 	}
 
 	public void cancelInvitation(String otherUser) throws Exception {
@@ -275,14 +230,22 @@ public class ChatClientController {
 		if (this.chatReceiver != null) {
 			sendChatClosure();
 		}
+		createQueueFor(user);
 		this.chatReceiver = new User();
 		this.chatReceiver.setNick(user);
 		sendCommandQueue("accept " + connectedUser.getNick() + " " + user);
 	}
 
 	public void refuseChatRequest(String user) throws Exception {
+		if (isChatSessionOpened()) {
+			closeQueue();
+		}
+		createQueueFor(user);
 		sendCommandQueue("busy " + connectedUser.getNick() + " " + user);
 		closeQueue();
+		if (isChatSessionOpened()) {
+			createQueueFor(chatReceiver.getNick());
+		}
 	}
 
 	public void sendChatClosure() throws Exception {
@@ -294,7 +257,7 @@ public class ChatClientController {
 
 	public void chatClosure(String userFrom) throws Exception {
 		// Notify the chat request details to the GUI
-		this.observable.onChatDisconnect(chatReceiver.getNick());
+		this.observable.onChatDisconnect(userFrom);
 		chatReceiver = null;
 		closeQueue();
 	}
