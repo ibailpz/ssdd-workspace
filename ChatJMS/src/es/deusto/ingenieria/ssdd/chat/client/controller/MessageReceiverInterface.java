@@ -3,9 +3,7 @@ package es.deusto.ingenieria.ssdd.chat.client.controller;
 public interface MessageReceiverInterface {
 
 	public void onMessage(String message, String userFrom, String userTo);
-
-	public void onConnect(boolean connected);
-
+	
 	public void onUserConnected(String user);
 
 	public void onUserDisconnected(String user);

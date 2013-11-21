@@ -105,8 +105,6 @@ public class ChatClientController {
 			topicSubscriber.setMessageListener(new MessageListener() {
 				@Override
 				public void onMessage(Message message) {
-					System.out.println(message);
-					observable.onConnect(true);
 					try {
 						String text = ((TextMessage) message).getText();
 						if (myMessages.contains(text)) {
@@ -314,7 +312,6 @@ public class ChatClientController {
 					try {
 						String message = ((TextMessage) mes).getText();
 						String split[] = message.split(" ");
-						observable.onConnect(true);
 						if (split[0].equals("message")) {
 							message(message.substring(split[0].length()
 									+ split[1].length() + split[2].length() + 3));
