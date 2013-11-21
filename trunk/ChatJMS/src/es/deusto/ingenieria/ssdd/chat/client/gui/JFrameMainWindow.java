@@ -58,7 +58,6 @@ public class JFrameMainWindow extends JFrame implements
 	private JDialog waitingInvitationPane;
 	private JDialog invitationPane;
 	private boolean isProgrammatic = false;
-	private boolean isUIConnected = false;
 	private DefaultListModel<String> listModel;
 
 	private ChatClientController controller;
@@ -247,6 +246,7 @@ public class JFrameMainWindow extends JFrame implements
 			}
 			this.txtFieldNick.setEditable(false);
 			this.btnConnect.setEnabled(false);
+			this.btnConnect.setVisible(false);
 
 			// Connect to the server
 			try {
@@ -268,13 +268,13 @@ public class JFrameMainWindow extends JFrame implements
 		this.listUsers.clearSelection();
 		this.listModel.clear();
 		this.btnConnect.setText("Connect");
+		this.btnConnect.setVisible(true);
 		this.btnConnect.setEnabled(true);
 		this.btnSendMsg.setEnabled(false);
 		this.textAreaHistory.setText("");
 		this.textAreaSendMsg.setText("");
 
 		this.setTitle("Chat main window - 'Disconnected'");
-		isUIConnected = false;
 	}
 
 	private void disconnect() {
@@ -455,25 +455,6 @@ public class JFrameMainWindow extends JFrame implements
 	public void onMessage(String message, String userFrom, String userTo) {
 		appendReceivedMessageToHistory(message, userFrom,
 				System.currentTimeMillis());
-	}
-
-	@Override
-	public void onConnect(boolean connected) {
-		if (connected) {
-			if (isUIConnected) {
-				return;
-			}
-			isUIConnected = true;
-			this.btnConnect.setEnabled(true);
-			this.btnConnect.setText("Disconnect");
-			this.btnSendMsg.setEnabled(true);
-			this.textAreaSendMsg.setText("");
-
-			this.setTitle("Chat main window - 'Connected'");
-		} else {
-			JOptionPane.showMessageDialog(this, "Can't connect to the server.",
-					"Connection error", JOptionPane.ERROR_MESSAGE);
-		}
 	}
 
 	@Override
