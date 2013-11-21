@@ -267,8 +267,8 @@ public class JFrameMainWindow extends JFrame implements
 		this.listUsers.setEnabled(true);
 		this.listUsers.clearSelection();
 		this.listModel.clear();
-		this.btnConnect.setEnabled(true);
 		this.btnConnect.setText("Connect");
+		this.btnConnect.setEnabled(true);
 		this.btnSendMsg.setEnabled(false);
 		this.textAreaHistory.setText("");
 		this.textAreaSendMsg.setText("");

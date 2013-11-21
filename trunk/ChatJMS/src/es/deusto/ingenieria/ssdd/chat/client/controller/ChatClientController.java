@@ -32,7 +32,6 @@ public class ChatClientController {
 	private User chatReceiver;
 	private MessageReceiverInterface observable;
 
-	// private TopicProcessingThread process;
 	private String connectionFactoryName = "TopicConnectionFactory";
 	private String topicJNDIName = "ssdd.topic";
 	private TopicConnection topicConnection = null;
@@ -178,12 +177,11 @@ public class ChatClientController {
 		try {
 			topicPublisher.close();
 			topicSubscriber.close();
-			// topicSession.unsubscribe(connectedUser.getNick());
 			topicSession.close();
 			topicConnection.close();
+			queueReceiver.close();
 			queueSession.close();
 			queueConnection.close();
-			queueReceiver.close();
 		} catch (JMSException e) {
 			e.printStackTrace();
 		}
