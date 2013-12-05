@@ -9,6 +9,7 @@ public class PropertiesFileHandler {
     public static String getProperty(String property) {
     	Properties properties = new Properties();
  
+    	System.out.println();
     	try {
     		properties.load(new FileInputStream("conf/config.properties")); 
     		return properties.getProperty(property);
