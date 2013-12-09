@@ -21,7 +21,7 @@ public class DownloadThread extends Thread {
 	public static DownloadThread getInstance() {
 		return instance;
 	}
-
+	
 	public void updatePeers(List<Peer> newPeerList) {
 		// TODO
 		this.peerList = newPeerList;
