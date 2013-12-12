@@ -6,12 +6,12 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.net.Socket;
 
-public class EchoService extends Thread {
+public class UploadWorker extends Thread {
 	private DataInputStream in;
 	private DataOutputStream out;
 	private Socket tcpSocket;
 
-	public EchoService(Socket socket) {
+	public UploadWorker(Socket socket) {
 		try {
 			this.tcpSocket = socket;
 			this.in = new DataInputStream(socket.getInputStream());
@@ -26,18 +26,9 @@ public class EchoService extends Thread {
 		// Echo server
 		try {
 			String data = this.in.readUTF();
-			System.out.println(" - Received data from '"
-					+ tcpSocket.getInetAddress().getHostAddress() + ":"
-					+ tcpSocket.getPort() + "' -> '" + data + "'");
 			
 			
 			
-			
-
-			this.out.writeUTF(data);
-			System.out.println(" - Sent data to '"
-					+ tcpSocket.getInetAddress().getHostAddress() + ":"
-					+ tcpSocket.getPort() + "' -> '" + data + "'");
 		} catch (EOFException e) {
 			System.err.println("# TCPConnection EOF error" + e.getMessage());
 		} catch (IOException e) {
@@ -50,5 +41,6 @@ public class EchoService extends Thread {
 						.println("# TCPConnection IO error:" + e.getMessage());
 			}
 		}
+		UploadThread.getInstance().childFinished(32);
 	}
 }
