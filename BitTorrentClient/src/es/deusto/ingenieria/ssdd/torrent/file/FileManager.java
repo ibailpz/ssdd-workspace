@@ -7,8 +7,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import es.deusto.ingenieria.ssdd.bitTorrent.bencoding.Bencoder;
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.MetainfoFile;
+import es.deusto.ingenieria.ssdd.bitTorrent.util.ToolKit;
 
 public class FileManager {
 
@@ -81,9 +81,8 @@ public class FileManager {
 	}
 
 	public void checkAndSaveBlock(int pos, byte[] bytes) throws IOException {
-		// FIXME Check block with hash
-		byte[] hash = new Bencoder().generateHash(bytes, "");
-		if (Arrays.equals(hash, metainfo.getInfo().getByteSHA1().get(pos))) {
+		if (Arrays.equals(ToolKit.generateSHA1Hash(bytes), metainfo.getInfo()
+				.getByteSHA1().get(pos))) {
 			synchronized (_fileLock) {
 				FileOutputStream fos = new FileOutputStream(data);
 				byte[] posArray = ByteBuffer.allocate(4).putInt(pos).array();
@@ -92,6 +91,10 @@ public class FileManager {
 						bytes.length);
 				fos.close();
 				this.downloadedBlocks++;
+				if (this.observer != null) {
+					// this.observer.downloaded(bytes.length);
+					this.observer.downloaded(1);
+				}
 			}
 
 		}
@@ -107,6 +110,14 @@ public class FileManager {
 
 	public int getTotalSize() {
 		return this.metainfo.getInfo().getLength();
+	}
+
+	public int getTotalBlocks() {
+		return this.blocks.length;
+	}
+
+	public int getDownloadedBlocks() {
+		return downloadedBlocks;
 	}
 
 }
