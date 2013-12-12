@@ -10,6 +10,9 @@ import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileFilter;
 
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.MetainfoFile;
+import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.handler.MetainfoFileHandler;
+import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.handler.MultipleFileHandler;
+import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.handler.SingleFileHandler;
 import es.deusto.ingenieria.ssdd.torrent.file.FileManager;
 import es.deusto.ingenieria.ssdd.torrent.upload.UploadThread;
 
@@ -42,12 +45,22 @@ public class Main {
 		int dialog = jfc.showOpenDialog(null);
 		if (dialog == JFileChooser.APPROVE_OPTION) {
 			File file = jfc.getSelectedFile();
-			MetainfoFile<?> meta = null; // FIXME unbencode
+			MetainfoFileHandler<?> handler;
+			try {
+				handler = new SingleFileHandler();
+				handler.parseTorrenFile(file.getPath());
+			} catch (Exception ex) {
+				handler = new MultipleFileHandler();
+				handler.parseTorrenFile(file.getPath());
+			}
+			MetainfoFile<?> meta = handler.getMetainfo();
 			try {
 				FileManager.initFileManager(meta);
-				ProgressDialog progress = new ProgressDialog(FileManager
-						.getFileManager().getTotalSize(), FileManager
-						.getFileManager().getDownloadedSize());
+				ProgressDialog progress = new ProgressDialog(meta.getInfo()
+						.getName(), FileManager.getFileManager()
+						.getTotalBlocks(), FileManager.getFileManager()
+						.getDownloadedBlocks());
+				FileManager.getFileManager().setFileObserver(progress);
 				UploadThread.startInstance();
 				progress.addWindowListener(new WindowAdapter() {
 					@Override
