@@ -14,13 +14,13 @@ import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.MetainfoFile;
 import es.deusto.ingenieria.ssdd.torrent.data.Peer;
 import es.deusto.ingenieria.ssdd.torrent.download.DownloadThread;
 
-public class TrackerTheard extends Thread {
+public class TrackerThread extends Thread {
 
 	private MetainfoFile<?> metainfo;
 	private long timing = -1;
 	private List<Peer> peersList;
 
-	public TrackerTheard(MetainfoFile<?> metainfo) {
+	public TrackerThread(MetainfoFile<?> metainfo) {
 		super();
 		this.metainfo = metainfo;
 	}
