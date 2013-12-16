@@ -6,6 +6,7 @@ import java.util.concurrent.Semaphore;
 
 import es.deusto.ingenieria.ssdd.torrent.data.BlockTemp;
 import es.deusto.ingenieria.ssdd.torrent.data.Peer;
+import es.deusto.ingenieria.ssdd.torrent.file.FileManager;
 
 public class DownloadThread extends Thread {
 
@@ -13,7 +14,7 @@ public class DownloadThread extends Thread {
 	private List<Peer> peerList;
 	private Semaphore block;
 	private ArrayList<BlockTemp> blocksControl = new ArrayList<>();
-	
+	private long donwloadedBytes = 0;
 
 	private DownloadThread(List<Peer> peerList) {
 		this.peerList = peerList;
@@ -27,6 +28,10 @@ public class DownloadThread extends Thread {
 	public static DownloadThread getInstance() {
 		return instance;
 	}
+	
+	public long getDownloadedBytes() {
+		return donwloadedBytes;
+	}
 
 	public void updatePeers(List<Peer> newPeerList) {
 		// TODO
@@ -36,10 +41,11 @@ public class DownloadThread extends Thread {
 	@Override
 	public void run() {
 		super.run();
-		
+
 		block = new Semaphore(peerList.size());
 
 		for (;;) {
+			//TODO Set parameters
 			new DownloadWorker(null, 0, 0, 0);
 			try {
 				block.acquire();
@@ -49,9 +55,20 @@ public class DownloadThread extends Thread {
 			}
 		}
 	}
-	
-	void childFinished(int numBytes) {
+
+	void childFinished(int blockPos, int offset, byte[] bytes) {
 		block.release();
+		donwloadedBytes += bytes.length;
+		BlockTemp bt = new BlockTemp(blockPos, FileManager.getFileManager().getBlockLength());
+		int index = blocksControl.indexOf(bt);
+		if (index >= 0) {
+			bt = blocksControl.get(index);
+		} else {
+			blocksControl.add(bt);
+		}
+		
+		bt.addBytes(bytes, offset);
+
 	}
 
 }

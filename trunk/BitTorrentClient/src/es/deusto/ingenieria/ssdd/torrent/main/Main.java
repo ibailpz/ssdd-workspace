@@ -14,6 +14,7 @@ import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.handler.MetainfoFileHandler
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.handler.MultipleFileHandler;
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.handler.SingleFileHandler;
 import es.deusto.ingenieria.ssdd.torrent.file.FileManager;
+import es.deusto.ingenieria.ssdd.torrent.tracker.TrackerThread;
 import es.deusto.ingenieria.ssdd.torrent.upload.UploadThread;
 
 public class Main {
@@ -62,6 +63,7 @@ public class Main {
 						.getDownloadedBlocks());
 				FileManager.getFileManager().setFileObserver(progress);
 				UploadThread.startInstance();
+				TrackerThread.startTracker(meta);
 				progress.addWindowListener(new WindowAdapter() {
 					@Override
 					public void windowClosing(WindowEvent arg0) {

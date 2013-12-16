@@ -14,6 +14,8 @@ import es.deusto.ingenieria.ssdd.torrent.file.FileObserver;
 
 public class ProgressDialog extends JFrame implements FileObserver {
 
+	private static final long serialVersionUID = 3129895159107929743L;
+	
 	JProgressBar progress = new JProgressBar();
 
 	public ProgressDialog(String name, int total, int current) {
