@@ -120,4 +120,8 @@ public class FileManager {
 		return downloadedBlocks;
 	}
 
+	public int getBlockLength() {
+		return this.metainfo.getInfo().getPieceLength();
+	}
+
 }
