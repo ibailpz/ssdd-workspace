@@ -378,6 +378,7 @@ public class JFrameMainWindow extends JFrame implements
 				if (result == JOptionPane.OK_OPTION) {
 					try {
 						this.controller.sendChatClosure();
+						this.btnSendMsg.setEnabled(false);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -501,6 +502,7 @@ public class JFrameMainWindow extends JFrame implements
 			if (waitingInvitationPane != null) {
 				waitingInvitationPane.setVisible(false);
 				waitingInvitationPane = null;
+				this.btnSendMsg.setEnabled(true);	
 			}
 			this.setTitle("Chat session between '"
 					+ this.controller.getConnectedUser() + "' & '" + userFrom
@@ -537,6 +539,7 @@ public class JFrameMainWindow extends JFrame implements
 				JOptionPane.showMessageDialog(JFrameMainWindow.this, user
 						+ " closed the chat session", "Chat closed",
 						JOptionPane.WARNING_MESSAGE);
+				JFrameMainWindow.this.btnSendMsg.setEnabled(false);
 			}
 		});
 		this.listUsers.clearSelection();
@@ -598,6 +601,7 @@ public class JFrameMainWindow extends JFrame implements
 					if (value == JOptionPane.YES_OPTION) {
 						controller.acceptChatRequest(userFrom);
 						isProgrammatic = true;
+						JFrameMainWindow.this.btnSendMsg.setEnabled(true);
 						listUsers.setSelectedValue(userFrom, true);
 						setTitle("Chat session between '"
 								+ controller.getConnectedUser() + "' & '"
