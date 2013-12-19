@@ -62,7 +62,7 @@ public class Main {
 						.getTotalBlocks(), FileManager.getFileManager()
 						.getDownloadedBlocks());
 				FileManager.getFileManager().setFileObserver(progress);
-				UploadThread.startInstance();
+				// UploadThread.startInstance();
 				TrackerThread.startTracker(meta);
 				progress.addWindowListener(new WindowAdapter() {
 					@Override
@@ -76,8 +76,8 @@ public class Main {
 				JOptionPane
 						.showMessageDialog(
 								null,
-								"Error",
 								"Error creating file for download. Check that you have rights to write in the directory and that there is enough space for the file.",
+								"Error",
 								JOptionPane.ERROR_MESSAGE);
 			}
 		}

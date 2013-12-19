@@ -140,7 +140,7 @@ public class ToolKit {
 		System.out.println();
 	}
 
-	static String makeHTTPEscaped(String str) {
+	public static String makeHTTPEscaped(String str) {
 		final int l = str.length();
 		char c;
 		
