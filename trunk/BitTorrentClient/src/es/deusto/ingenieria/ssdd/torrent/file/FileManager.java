@@ -52,9 +52,10 @@ public class FileManager {
 			if (!data.exists()) {
 				int length = this.metainfo.getInfo().getLength();
 				length += (this.blocks.length * 4);
-				if (length >= data.getFreeSpace()) {
-					throw new IOException("Not enough space to create file");
-				}
+				System.out.println(length + " , " + data.getFreeSpace());
+//				if (length >= data.getFreeSpace()) {
+//					throw new IOException("Not enough space to create file");
+//				}
 				data.createNewFile();
 				FileOutputStream fos = new FileOutputStream(data);
 				byte[] b = new byte[] { -1 };
