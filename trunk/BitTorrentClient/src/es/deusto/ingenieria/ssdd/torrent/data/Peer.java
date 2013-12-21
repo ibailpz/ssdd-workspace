@@ -19,4 +19,9 @@ public class Peer {
 		return port;
 	}
 
+	@Override
+	public String toString() {
+		return ip + ":" + port;
+	}
+
 }

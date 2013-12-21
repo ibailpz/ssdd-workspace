@@ -12,6 +12,8 @@ public class UploadThread extends Thread {
 	private long totalBytes = 0;
 
 	private UploadThread() {
+		super("UploadThread");
+		this.setDaemon(false);
 	}
 
 	public static void startInstance() {
@@ -22,7 +24,7 @@ public class UploadThread extends Thread {
 	public static UploadThread getInstance() {
 		return instance;
 	}
-	
+
 	public long getTotalBytes() {
 		return totalBytes;
 	}
@@ -36,12 +38,14 @@ public class UploadThread extends Thread {
 					+ tcpServerSocket.getInetAddress().getHostAddress() + ":"
 					+ tcpServerSocket.getLocalPort() + "' ...");
 
-			for(;;) {
+			for (;;) {
 				new UploadWorker(tcpServerSocket.accept());
 				try {
 					block.acquire();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
+				}
+				if (isInterrupted()) {
 					break;
 				}
 			}
@@ -50,7 +54,7 @@ public class UploadThread extends Thread {
 		}
 
 	}
-	
+
 	void childFinished(int numBytes) {
 		block.release();
 		totalBytes += numBytes;
