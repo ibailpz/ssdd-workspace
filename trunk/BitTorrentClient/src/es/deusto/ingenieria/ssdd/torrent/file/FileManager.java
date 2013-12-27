@@ -206,6 +206,17 @@ public class FileManager {
 		return metainfo.getInfo().getHexInfoHash();
 	}
 
+	public int getNextPosToDownload(int start) {
+		int pos = -1;
+		for (int i = start; i < blocks.length; i++) {
+			if (blocks[i] > 0) {
+				pos = i;
+				break;
+			}
+		}
+		return pos;
+	}
+
 	/**
 	 * Checks the whole temp file and writes it to its final file format
 	 * 

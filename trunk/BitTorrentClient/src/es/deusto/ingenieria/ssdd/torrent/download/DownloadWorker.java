@@ -10,18 +10,24 @@ import java.net.UnknownHostException;
 
 import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.BitfieldMsg;
 import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.Handsake;
+import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.HaveMsg;
 import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.PeerProtocolMessage;
+import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.RequestMsg;
+import es.deusto.ingenieria.ssdd.bitTorrent.util.ToolKit;
 import es.deusto.ingenieria.ssdd.torrent.data.Peer;
 import es.deusto.ingenieria.ssdd.torrent.tracker.TrackerThread;
 
 public class DownloadWorker extends Thread {
 
+	private DataInputStream in;
+	private DataOutputStream out;
+
 	private String info_hash;
 	private Peer peer;
 	private int block;
 	private int subBlock;
+	private byte[] downloaded = null;
 
-	// TODO Completar parametros
 	public DownloadWorker(String info_hash, Peer peer, int block, int subBlock) {
 		this.info_hash = info_hash;
 		this.peer = peer;
@@ -39,6 +45,9 @@ public class DownloadWorker extends Thread {
 				DataOutputStream out = new DataOutputStream(
 						tcpSocket.getOutputStream())) {
 
+			this.in = in;
+			this.out = out;
+
 			// Send handsake
 			Handsake handsake = new Handsake();
 			handsake.setPeerId(TrackerThread.getInstance().getMyID());
@@ -50,9 +59,9 @@ public class DownloadWorker extends Thread {
 
 			boolean isFinished = false;
 			while (!isFinished) {
-				PeerProtocolMessage message = readMessage(in);
+				PeerProtocolMessage message = PeerProtocolMessage.parseMessage(readInput());
 				// Check the message
-				isFinished = handleMessage(message, out);
+				isFinished = handleMessage(message);
 			}
 
 		} catch (UnknownHostException e) {
@@ -62,21 +71,20 @@ public class DownloadWorker extends Thread {
 		} catch (IOException e) {
 			System.err.println("# TCPClient IO error: " + e.getMessage());
 		}
+		DownloadThread.getInstance().childFinished(block, subBlock, downloaded);
 	}
 
-	private PeerProtocolMessage readMessage(DataInputStream in)
-			throws IOException {
-
+	private byte[] readInput() throws IOException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		int i;
 		while ((i = in.read()) != -1) {
 			baos.write(i);
 		}
-
-		return PeerProtocolMessage.parseMessage(baos.toByteArray());
+		return baos.toByteArray();
 	}
 
-	private boolean handleMessage(PeerProtocolMessage message, DataOutputStream out) {
+	private boolean handleMessage(PeerProtocolMessage message)
+			throws IOException {
 		switch (message.getType()) {
 		case BITFIELD:
 			byte[] payload = ((BitfieldMsg) message).getPayload();
@@ -89,19 +97,34 @@ public class DownloadWorker extends Thread {
 
 			}
 			peer.setBitfield(bitfield);
-			return false;
+			if (peer.getBitfield()[block] < 1) {
+				return true;
+			}
+			return downloadBlock();
 		case CHOKE:
-
+			peer.setChockedUs(true);
 			return true;
 		case HAVE:
-
-			return false;
+			HaveMsg have = (HaveMsg) message;
+			int pos = ToolKit.bigEndianBytesToInt(have.getBytes(), 0);
+			if (pos < 0) {
+				return true;
+			}
+			peer.setBitfieldPosition(pos, 1);
+			return downloadBlock();
 		case UNCHOKE:
-
+			peer.setChockedUs(false);
 			return false;
 		default:
 			return true;
 		}
-	}	
+	}
+
+	private boolean downloadBlock() throws IOException {
+		RequestMsg req = new RequestMsg(block, subBlock, 32);
+		out.write(req.getBytes());
+		downloaded = readInput();
+		return true;
+	}
 
 }

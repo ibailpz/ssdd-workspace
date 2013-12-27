@@ -65,9 +65,8 @@ public class TrackerThread extends Thread {
 		}
 
 		originalUrl = originalUrl + "?info_hash="
-				+ metainfo.getInfo().getUrlInfoHash() + "&peer_id="
-				+ myID + "&port=" + UploadThread.port
-				+ "&compact=0" + "&no_peer_id=1";
+				+ metainfo.getInfo().getUrlInfoHash() + "&peer_id=" + myID
+				+ "&port=" + UploadThread.port + "&compact=0" + "&no_peer_id=1";
 
 		for (;;) {
 			String url = generateUrl();
@@ -75,11 +74,11 @@ public class TrackerThread extends Thread {
 			makeConnection(url);
 
 			// FIXME Restore
-			// if (timing > 0) {
-			// DownloadThread.getInstance().updatePeers(peersList);
-			// } else {
-			// DownloadThread.startInstance(peersList);
-			// }
+			if (timing > 0) {
+				DownloadThread.getInstance().updatePeers(peersList);
+			} else {
+				DownloadThread.startInstance(peersList);
+			}
 
 			if (isInterrupted()) {
 				break;
@@ -166,8 +165,9 @@ public class TrackerThread extends Thread {
 			InetAddress ip = InetAddress.getByAddress(ipBytes);
 			int port = (0xFF & (int) peers.get()) << 8
 					| (0xFF & (int) peers.get());
-			// FIXME Send bitfield[]
-			result.add(new Peer(ip.getHostAddress(), port, 0));
+			// FIXME Send bitfield[] Check
+			result.add(new Peer(ip.getHostAddress(), port, FileManager
+					.getFileManager().getTotalBlocks()));
 		}
 
 		return result;
@@ -179,7 +179,7 @@ public class TrackerThread extends Thread {
 		}
 		makeConnection(generateUrl(true));
 	}
-	
+
 	public String getMyID() {
 		return myID;
 	}
