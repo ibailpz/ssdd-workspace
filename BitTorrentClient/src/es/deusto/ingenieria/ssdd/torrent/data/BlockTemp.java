@@ -18,6 +18,10 @@ public class BlockTemp {
 		miniBlocks += b.length;
 	}
 
+	public int getStartOffset() {
+		return miniBlocks;
+	}
+
 	public boolean isFinished() {
 		return miniBlocks == bytes.length;
 	}
