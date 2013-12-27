@@ -201,6 +201,13 @@ public class FileManager {
 		}
 		return bitfield;
 	}
+	
+	public byte[] getBlock(int index) {
+		//TODO 
+		
+		return null;		
+	}
+	
 
 	public String getInfoHash() {
 		return metainfo.getInfo().getHexInfoHash();
