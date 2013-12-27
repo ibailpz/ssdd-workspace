@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -29,6 +28,7 @@ public class TrackerThread extends Thread {
 	private boolean finishedSent = false;
 	private List<Peer> peersList;
 	private static TrackerThread instance;
+	private String myID = null;
 
 	private TrackerThread(MetainfoFile<?> metainfo) {
 		super("TrackerThread");
@@ -48,6 +48,7 @@ public class TrackerThread extends Thread {
 	@Override
 	public void run() {
 		super.run();
+		myID = ToolKit.generatePeerId();
 
 		if (!metainfo.getAnnounce().startsWith("http")) {
 			for (int i = 0; i < metainfo.getAnnounceList().size(); i++) {
@@ -65,7 +66,7 @@ public class TrackerThread extends Thread {
 
 		originalUrl = originalUrl + "?info_hash="
 				+ metainfo.getInfo().getUrlInfoHash() + "&peer_id="
-				+ ToolKit.generatePeerId() + "&port=" + UploadThread.port
+				+ myID + "&port=" + UploadThread.port
 				+ "&compact=0" + "&no_peer_id=1";
 
 		for (;;) {
@@ -165,7 +166,8 @@ public class TrackerThread extends Thread {
 			InetAddress ip = InetAddress.getByAddress(ipBytes);
 			int port = (0xFF & (int) peers.get()) << 8
 					| (0xFF & (int) peers.get());
-			result.add(new Peer(ip.getHostAddress(), port));
+			// FIXME Send bitfield[]
+			result.add(new Peer(ip.getHostAddress(), port, 0));
 		}
 
 		return result;
@@ -177,36 +179,8 @@ public class TrackerThread extends Thread {
 		}
 		makeConnection(generateUrl(true));
 	}
-
-	// public List<Peer> getPeers(String peers) {
-	// ArrayList<Peer> peerList = new ArrayList<Peer>();
-	// try {
-	// byte[] bytes = peers.getBytes("ISO-8859-1");
-	// bytes = peers.getBytes();
-	// System.out.println(Arrays.toString(bytes));
-	// System.out.println(peers.length() + " , " + bytes.length);
-	// System.out.println(Integer.parseInt(Integer.toHexString(bytes[0])
-	// + Integer.toHexString(bytes[1]), 16));
-	// System.out.println(Integer.toBinaryString(bytes[0])
-	// + Integer.toBinaryString(bytes[1]));
-	// System.out.println(Integer.parseInt(
-	// Integer.toBinaryString(bytes[0])
-	// + Integer.toBinaryString(bytes[1]), 2));
-	// for (int i = 0; i < peers.length(); i = i + 12) {
-	// String ip = "";
-	// for (int j = 0; j < 8; j = j + 2) {
-	// ip = ip + Integer.parseInt(peers.substring(i, i + 2), 16);
-	// ip = ip + ".";
-	// }
-	// ip = ip.substring(0, ip.length() - 1);
-	// int port = Integer.parseInt(peers.substring(8, 12), 16);
-	// System.out.println(ip + ":" + port);
-	// peerList.add(new Peer(ip, port));
-	// }
-	// } catch (UnsupportedEncodingException ex) {
-	// ex.printStackTrace();
-	// }
-	//
-	// return peerList;
-	// }
+	
+	public String getMyID() {
+		return myID;
+	}
 }

@@ -54,7 +54,7 @@ public class DownloadThread extends Thread {
 			donwloadedBytes = 0;
 			while (!finished) {
 				// TODO Set parameters
-				new DownloadWorker(null, 0, 0, 0);
+				new DownloadWorker(null, null, 0, 0);
 				try {
 					block.acquire();
 				} catch (InterruptedException e) {

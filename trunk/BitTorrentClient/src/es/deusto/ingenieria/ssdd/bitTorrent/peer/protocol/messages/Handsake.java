@@ -65,9 +65,8 @@ public class Handsake {
 		} catch (Exception ex) {
 			return null;
 		}
-	}		
-		
-		
+	}	
+			
 	public String toString() {
 		return new String(this.getBytes());
 	}

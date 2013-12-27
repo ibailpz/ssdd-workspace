@@ -80,7 +80,7 @@ public abstract class PeerProtocolMessage {
 		}
 	}
 	
-	public PeerProtocolMessage parseMessage(byte[] msgBytes) {
+	public static PeerProtocolMessage parseMessage(byte[] msgBytes) {
 		PeerProtocolMessage message = null;
 		
 		if (msgBytes != null && msgBytes.length != 0) {
