@@ -90,31 +90,10 @@ public class DownloadWorker extends Thread {
 			}
 			peer.setBitfield(bitfield);
 			return false;
-		case CANCEL:
-			
-			return true;
 		case CHOKE:
 
 			return true;
 		case HAVE:
-
-			return false;
-		case INTERESTED:
-
-			return false;
-		case KEEP_ALIVE:
-
-			return false;
-		case NOT_INTERESTED:
-
-			return true;
-		case PIECE:
-
-			return false;
-		case PORT:
-
-			return false;
-		case REQUEST:
 
 			return false;
 		case UNCHOKE:

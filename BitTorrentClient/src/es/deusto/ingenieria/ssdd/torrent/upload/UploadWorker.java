@@ -10,10 +10,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.BitfieldMsg;
-import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.HaveMsg;
 import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.PeerProtocolMessage;
-import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.PieceMsg;
-import es.deusto.ingenieria.ssdd.bitTorrent.util.ToolKit;
 import es.deusto.ingenieria.ssdd.torrent.file.FileManager;
 import es.deusto.ingenieria.ssdd.torrent.tracker.TrackerThread;
 
@@ -102,18 +99,9 @@ public class UploadWorker extends Thread {
 	private boolean handleMessage(PeerProtocolMessage message,
 			DataOutputStream out) {
 		switch (message.getType()) {
-		case BITFIELD:
-
-			return false;
 		case CANCEL:
 
 			return true;
-		case CHOKE:
-
-			return true;
-		case HAVE:
-			
-			return false;
 		case INTERESTED:
 
 			return false;
@@ -130,10 +118,7 @@ public class UploadWorker extends Thread {
 
 			return false;
 		case REQUEST:
-
-			return false;
-		case UNCHOKE:
-
+			
 			return false;
 		default:
 			return true;
