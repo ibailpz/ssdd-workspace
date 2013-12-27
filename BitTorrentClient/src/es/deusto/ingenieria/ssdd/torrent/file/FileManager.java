@@ -193,6 +193,14 @@ public class FileManager {
 	public int getBlockLength() {
 		return this.metainfo.getInfo().getPieceLength();
 	}
+	
+	public byte[] getBitfield() {
+		byte[] bitfield = new byte[blocks.length];
+		for(int i=0; i<blocks.length; i++) {
+			bitfield[i] = (byte) blocks[i];
+		}
+		return bitfield;
+	}
 
 	/**
 	 * Checks the whole temp file and writes it to its final file format
