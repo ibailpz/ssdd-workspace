@@ -5,6 +5,7 @@ public class BlockTemp {
 	private int pos;
 	private byte[] bytes;
 	private int miniBlocks = 0;
+	private int nextMiniBlock = 0;
 
 	public BlockTemp(int pos, int length) {
 		this.pos = pos;
@@ -12,7 +13,7 @@ public class BlockTemp {
 	}
 
 	public synchronized void addBytes(byte[] b, int offset) {
-		for (int i = offset, j = 0; j < b.length; i++, j++) {
+		for (int i = offset, j = 0; i < bytes.length && j < b.length; i++, j++) {
 			bytes[i] = b[j];
 		}
 		miniBlocks += b.length;
@@ -23,7 +24,7 @@ public class BlockTemp {
 	}
 
 	public boolean isFinished() {
-		return miniBlocks == bytes.length;
+		return miniBlocks >= bytes.length;
 	}
 
 	public byte[] getBytes() {
@@ -32,6 +33,22 @@ public class BlockTemp {
 
 	public int getPos() {
 		return pos;
+	}
+
+	public void miniBlockStarted(int length) {
+		nextMiniBlock += length;
+	}
+
+	public void miniBlockDownloadFailed(int length) {
+		nextMiniBlock -= length;
+	}
+
+	public int getNextMiniBlock() {
+		return nextMiniBlock;
+	}
+
+	public int size() {
+		return bytes.length;
 	}
 
 	@Override

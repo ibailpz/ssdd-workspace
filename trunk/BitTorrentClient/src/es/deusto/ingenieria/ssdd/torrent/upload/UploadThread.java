@@ -4,10 +4,13 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.concurrent.Semaphore;
 
+import es.deusto.ingenieria.ssdd.torrent.main.WindowManager;
+
 public class UploadThread extends Thread {
 
 	private static UploadThread instance;
 	public static final int port = 8888;
+	private ServerSocket tcpServerSocket;
 	private Semaphore block = new Semaphore(5);
 	private long totalBytes = 0;
 
@@ -33,26 +36,40 @@ public class UploadThread extends Thread {
 	public void run() {
 		super.run();
 
-		try (ServerSocket tcpServerSocket = new ServerSocket(port);) {
-			System.out.println(" - Waiting for connections '"
-					+ tcpServerSocket.getInetAddress().getHostAddress() + ":"
-					+ tcpServerSocket.getLocalPort() + "' ...");
+		System.out.println("UploadThread - UploadThread started");
 
+		try (ServerSocket tcpServerSocket = new ServerSocket(port);) {
+			this.tcpServerSocket = tcpServerSocket;
+			System.out.println("UploadThread - Waiting for connections...");
 			for (;;) {
-				new UploadWorker(tcpServerSocket.accept());
+				new UploadWorker(tcpServerSocket.accept()).start();
 				try {
 					block.acquire();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
+					break;
 				}
+				// new UploadWorker(tcpServerSocket.accept()).start();
 				if (isInterrupted()) {
 					break;
 				}
 			}
 		} catch (IOException e) {
 			System.err.println("# TCPServer IO error:" + e.getMessage());
+			e.printStackTrace();
 		}
+		System.out.println("UploadThread - UploadThread stopped");
+		WindowManager.exitBlocker.release();
+	}
 
+	@Override
+	public void interrupt() {
+		try {
+			tcpServerSocket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		super.interrupt();
 	}
 
 	void childFinished(int numBytes) {

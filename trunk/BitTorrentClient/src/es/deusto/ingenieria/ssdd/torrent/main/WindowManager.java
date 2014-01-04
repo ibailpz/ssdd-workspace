@@ -3,9 +3,11 @@ package es.deusto.ingenieria.ssdd.torrent.main;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.util.concurrent.Semaphore;
 
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JProgressBar;
 import javax.swing.filechooser.FileFilter;
 
@@ -14,6 +16,8 @@ import es.deusto.ingenieria.ssdd.torrent.tracker.TrackerThread;
 import es.deusto.ingenieria.ssdd.torrent.upload.UploadThread;
 
 public class WindowManager {
+
+	public static final Semaphore exitBlocker = new Semaphore(0);
 
 	private static final WindowManager instance = new WindowManager();
 
@@ -88,22 +92,41 @@ public class WindowManager {
 	}
 
 	public void showDownloading(String fileName, ProgressDialog progress) {
-		root.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		root.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		root.add(progress);
 		root.setTitle("Downloading " + fileName + "...");
 		root.pack();
 		root.setResizable(false);
 		root.setLocationRelativeTo(null);
 		root.addWindowListener(new WindowAdapter() {
+
 			@Override
 			public void windowClosing(WindowEvent arg0) {
-				// FIXME Terminate threads on close
-				TrackerThread.getInstance().interrupt();
-				DownloadThread.getInstance().interrupt();
-				UploadThread.getInstance().interrupt();
+				new Thread(new Runnable() {
+
+					@Override
+					public void run() {
+						quit();
+					}
+				}).start();
 			}
 		});
 		root.setVisible(true);
+	}
+
+	private void quit() {
+		// FIXM Terminate threads on close
+		TrackerThread.getInstance().interrupt();
+		if (DownloadThread.getInstance() != null) {
+			DownloadThread.getInstance().interrupt();
+		}
+		UploadThread.getInstance().interrupt();
+		try {
+			exitBlocker.acquire(3);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		System.exit(0);
 	}
 
 	public void setWindowDefaultCloseOperation(int op) {
@@ -113,6 +136,12 @@ public class WindowManager {
 	public void refresh() {
 		root.pack();
 		root.setLocationRelativeTo(null);
+	}
+
+	public void displayError(String error) {
+		JOptionPane.showMessageDialog(root, error, "Error",
+				JOptionPane.ERROR_MESSAGE);
+		quit();
 	}
 
 }

@@ -63,7 +63,7 @@ public class ProgressDialog extends JPanel implements FileObserver {
 	@Override
 	public void restart() {
 		WindowManager.getInstance().setWindowDefaultCloseOperation(
-				JFrame.EXIT_ON_CLOSE);
+				JFrame.DISPOSE_ON_CLOSE);
 		progress.setValue(0);
 		info.removeAll();
 		info.add(indeterminate);
