@@ -8,13 +8,13 @@ public class Peer {
 	private boolean chockedUs = false;
 
 	public Peer(String ip, int port, int bitfieldSize) {
-		super();
 		this.ip = ip;
 		this.port = port;
 		this.bitfield = new int[bitfieldSize];
 		for (int i = 0; i < bitfieldSize; i++) {
 			bitfield[i] = -1;
 		}
+		System.out.println("Peer created " + this.toString());
 	}
 
 	public String getIp() {
@@ -30,7 +30,14 @@ public class Peer {
 	}
 
 	public void setBitfield(int[] bitfield) {
-		this.bitfield = bitfield;
+		// this.bitfield = bitfield;
+		if (this.bitfield.length != bitfield.length) {
+			System.out.println("Different length bitfield received. Weird...");
+			return;
+		}
+		for (int i = 0; i < bitfield.length; i++) {
+			this.bitfield[i] = Math.max(this.bitfield[i], bitfield[i]);
+		}
 	}
 
 	public void setBitfieldPosition(int position, int state) {
