@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -185,25 +187,34 @@ public class FileManager {
 						+ Arrays.toString(metainfo.getInfo().getByteSHA1()
 								.get(pos)));
 				System.out.print("\tGenerated: " + Arrays.toString(blockHash));
-				String hex = bytesToHex(blockHash);
-				// if (Arrays.equals(blockHash, metainfo.getInfo().getByteSHA1()
-				// .get(pos))) {
-				if (hex.equals(metainfo.getInfo().getHexStringSHA1().get(pos))) {
+				byte[] asciiHash = new String(blockHash).getBytes("ASCII");
+				if (Arrays.equals(asciiHash, metainfo.getInfo().getByteSHA1()
+						.get(pos))) {
 					System.out
 							.println("FileManager - Check correct. Saving...");
-					FileOutputStream fos = new FileOutputStream(tempData);
+
+					RandomAccessFile raf = new RandomAccessFile(tempData, "rw");
+					// FileOutputStream fos = new FileOutputStream(tempData);
 					byte[] posArray = ByteBuffer.allocate(4).putInt(pos)
 							.array();
-					fos.write(bytes, (blocks.length * 4) + getDownloadedSize(),
-							bytes.length);
-					fos.write(posArray, downloadedBlocks * 4, 4);
+					raf.seek((blocks.length * 4) + getDownloadedSize());
+					raf.write(bytes);
+					raf.seek(downloadedBlocks * 4);
+					raf.write(posArray);
+					// fos.write(bytes, (blocks.length * 4) +
+					// getDownloadedSize(),
+					// bytes.length);
+					// fos.write(posArray, downloadedBlocks * 4, 4);
 					blocks[pos] = 1;
 					this.downloadedBlocks++;
 					if (this.observer != null) {
 						// this.observer.downloaded(bytes.length);
 						this.observer.downloaded(1);
 					}
-					fos.close();
+					raf.close();
+					// fos.close();
+					System.out.println("FileManager - Block " + pos
+							+ " correctly stored");
 				} else {
 					System.out.println("FileManager - Wrong hash");
 				}
@@ -260,22 +271,32 @@ public class FileManager {
 		}
 		byte[] bytes = new byte[getBlockLength()];
 		synchronized (_fileLock) {
-			FileInputStream fis = null;
+			// FileInputStream fis = null;
+			RandomAccessFile raf = null;
 			try {
 				if (isFinished()) {
-					fis = new FileInputStream(data);
-					loadBlock(index, bytes, fis, false);
+					// fis = new FileInputStream(data);
+					raf = new RandomAccessFile(data, "r");
+					loadBlock(index, bytes, raf, false);
 				} else {
-					fis = new FileInputStream(tempData);
-					loadBlock(index, bytes, fis, true);
+					// fis = new FileInputStream(tempData);
+					raf = new RandomAccessFile(tempData, "r");
+					loadBlock(index, bytes, raf, true);
 				}
 			} catch (IOException ex) {
 				ex.printStackTrace();
 				bytes = null;
 			} finally {
-				if (fis != null) {
+				// if (fis != null) {
+				// try {
+				// fis.close();
+				// } catch (IOException e) {
+				// e.printStackTrace();
+				// }
+				// }
+				if (raf != null) {
 					try {
-						fis.close();
+						raf.close();
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -300,13 +321,13 @@ public class FileManager {
 	 * @throws IOException
 	 *             If any error happens when accessing the file
 	 */
-	private void loadBlock(int index, byte[] bytes, FileInputStream fis,
+	private void loadBlock(int index, byte[] bytes, RandomAccessFile raf,
 			boolean isTemp) throws IOException {
 		if (isTemp) {
 			byte[] b = new byte[4];
 			int i = 0;
 			for (; i < this.blocks.length; i++) {
-				fis.read(b);
+				raf.read(b);
 				int pos = ByteBuffer.wrap(b).getInt();
 				if (pos == index) {
 					break;
@@ -316,12 +337,36 @@ public class FileManager {
 				throw new IOException("Block " + index
 						+ " is not in the temp file");
 			}
-			fis.read(bytes, (this.blocks.length * 4) + (i * getBlockLength()),
-					getBlockLength());
+			raf.seek((this.blocks.length * 4) + (i * getBlockLength()));
+			raf.read(bytes);
 		} else {
-			fis.read(bytes, (index * getBlockLength()), getBlockLength());
+			raf.seek((index * getBlockLength()));
+			raf.read(bytes);
 		}
 	}
+
+	// private void loadBlock(int index, byte[] bytes, FileInputStream fis,
+	// boolean isTemp) throws IOException {
+	// if (isTemp) {
+	// byte[] b = new byte[4];
+	// int i = 0;
+	// for (; i < this.blocks.length; i++) {
+	// fis.read(b);
+	// int pos = ByteBuffer.wrap(b).getInt();
+	// if (pos == index) {
+	// break;
+	// }
+	// }
+	// if (i == this.blocks.length) {
+	// throw new IOException("Block " + index
+	// + " is not in the temp file");
+	// }
+	// fis.read(bytes, (this.blocks.length * 4) + (i * getBlockLength()),
+	// getBlockLength());
+	// } else {
+	// fis.read(bytes, (index * getBlockLength()), getBlockLength());
+	// }
+	// }
 
 	public byte[] getInfoHash() {
 		return metainfo.getInfo().getInfoHash();
@@ -356,18 +401,26 @@ public class FileManager {
 			System.out.println("FileManager - Hash comparison:");
 			System.out.print("\tOriginal:  "
 					+ Arrays.toString(metainfo.getInfo().getInfoHash()));
+			try {
+				generatedHash = new String(generatedHash).getBytes("ASCII");
+			} catch (UnsupportedEncodingException e1) {
+				e1.printStackTrace();
+			}
 			System.out.print("\tGenerated: " + Arrays.toString(generatedHash));
 			if (Arrays.equals(metainfo.getInfo().getInfoHash(), generatedHash)) {
 				System.out
 						.println("FileManager - Hash check successful. Generating final file...");
-				FileInputStream tempDataInput = null;
+				// FileInputStream tempDataInput = null;
+				RandomAccessFile tempDataInput = null;
 				FileOutputStream dataOutput = null;
 				boolean completed = false;
 				try {
-					tempDataInput = new FileInputStream(tempData);
-					int[] order = getBlocksStoredOrder(tempDataInput);
+					// tempDataInput = new FileInputStream(tempData);
+					tempDataInput = new RandomAccessFile(tempData, "r");
+					// int[] order = getBlocksStoredOrder(tempDataInput);
 					dataOutput = new FileOutputStream(data);
-					storeData(order, tempDataInput, dataOutput);
+					// storeData(order, tempDataInput, dataOutput);
+					storeData(new int[0], tempDataInput, dataOutput);
 					completed = true;
 					observer.finished();
 					return true;
@@ -421,7 +474,7 @@ public class FileManager {
 		return order;
 	}
 
-	private void storeData(int[] order, FileInputStream tempDataInput,
+	private void storeData(int[] order, RandomAccessFile raf,
 			FileOutputStream dataOutput) throws IOException {
 		// TODO Is really order needed??
 		// int length = this.metainfo.getInfo().getLength();
@@ -430,9 +483,23 @@ public class FileManager {
 		for (int i = 0; i < this.blocks.length; i++) {
 			bytes = new byte[getBlockLength()];
 			// loadBlock(order[i], bytes, tempDataInput);
-			loadBlock(order[i], bytes, tempDataInput, true);
+			loadBlock(order[i], bytes, raf, true);
 			dataOutput.write(bytes);
 		}
 	}
+
+	// private void storeData(int[] order, FileInputStream tempDataInput,
+	// FileOutputStream dataOutput) throws IOException {
+	// // TODO Is really order needed??
+	// // int length = this.metainfo.getInfo().getLength();
+	// // fillFile(length, dataOutput);
+	// byte[] bytes;
+	// for (int i = 0; i < this.blocks.length; i++) {
+	// bytes = new byte[getBlockLength()];
+	// // loadBlock(order[i], bytes, tempDataInput);
+	// loadBlock(order[i], bytes, tempDataInput, true);
+	// dataOutput.write(bytes);
+	// }
+	// }
 
 }
