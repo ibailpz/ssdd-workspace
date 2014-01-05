@@ -54,7 +54,7 @@ public class DownloadThread extends Thread {
 		System.out.println("DownloadThread - DownloadThread started");
 
 		// block = new Semaphore(peerList.size());
-		block = new Semaphore(5);
+		block = new Semaphore(30);
 		finished = FileManager.getFileManager().isFinished();
 
 		int[] blockSubBlock = new int[2];
@@ -129,19 +129,29 @@ public class DownloadThread extends Thread {
 					// } else {
 					// blocksControl.add(bt);
 					// }
-					BlockTemp bt = blocksControl.get(pos);
-					if (bt == null) {
-						bt = new BlockTemp(pos, FileManager.getFileManager()
-								.getBlockLength());
-						blocksControl.put(pos, bt);
-						System.out.println("BlockTemp created for position "
-								+ pos);
+					BlockTemp bt = null;
+					synchronized (blocksControl) {
+						bt = blocksControl.get(pos);
+						if (bt == null) {
+							bt = new BlockTemp(pos, FileManager
+									.getFileManager().getBlockLength(),
+									TrackerThread.subBlockSize);
+							blocksControl.put(pos, bt);
+							System.out
+									.println("BlockTemp created for position "
+											+ pos);
+						}
 					}
-					int miniBlock = bt.getNextMiniBlock();
-					if (miniBlock < bt.size()) {
+					// int miniBlock = bt.getNextMiniBlock();
+					// if (miniBlock < bt.size()) {
+					// blockSubBlock[0] = pos;
+					// blockSubBlock[1] = miniBlock;
+					// bt.miniBlockStarted(TrackerThread.subBlockSize);
+					// return p;
+					// }
+					if (bt.hasMoreMiniBlocks()) {
 						blockSubBlock[0] = pos;
-						blockSubBlock[1] = miniBlock;
-						bt.miniBlockStarted(TrackerThread.subBlockSize);
+						blockSubBlock[1] = bt.getNextMiniBlock();
 						return p;
 					}
 				}
@@ -155,18 +165,18 @@ public class DownloadThread extends Thread {
 	void childFinished(int blockPos, int offset, byte[] bytes) {
 		System.out.println("DownloadThread - Child for block " + blockPos
 				+ " and offset " + offset + " finished");
-		BlockTemp bt = new BlockTemp(blockPos, FileManager.getFileManager()
-				.getBlockLength());
+		// BlockTemp bt = new BlockTemp(blockPos, 0, 0);
 		// int index = blocksControl.indexOf(bt);
 		// // if (index >= 0) {
 		// bt = blocksControl.get(index);
 		// // } else {
 		// // blocksControl.add(bt);
 		// // }
-		bt = blocksControl.get(blockPos);
+		BlockTemp bt = blocksControl.get(blockPos);
 		if (bytes != null) {
-			System.out.println("DownloadThread - Adding child result to block "
-					+ blockPos);
+			System.out
+					.println("DownloadThread - Adding child result for block "
+							+ blockPos + " and offset " + offset);
 			donwloadedBytes += bytes.length;
 
 			bt.addBytes(bytes, offset);
@@ -182,7 +192,9 @@ public class DownloadThread extends Thread {
 				blocksControl.remove(blockPos);
 			}
 		} else {
-			bt.miniBlockDownloadFailed(TrackerThread.subBlockSize);
+			System.out.println("DownloadThread - Child for block " + blockPos
+					+ " and offset " + offset + " did not get any data");
+			bt.miniBlockDownloadFailed(offset);
 		}
 		block.release();
 	}

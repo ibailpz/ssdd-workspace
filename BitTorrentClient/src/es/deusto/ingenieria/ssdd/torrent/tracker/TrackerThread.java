@@ -150,7 +150,6 @@ public class TrackerThread extends Thread {
 		return url;
 	}
 
-	@SuppressWarnings("unchecked")
 	private void makeConnection(String url) throws IOException {
 		URL connection = new URL(url);
 		HttpURLConnection urlConnection = (HttpURLConnection) connection
@@ -170,24 +169,7 @@ public class TrackerThread extends Thread {
 		// }
 		timing = (int) info.get("interval") * 1000;
 		System.out.println("TrackerThread - New timing: " + timing);
-		Object o = info.get("peers");
-		if (o instanceof String) {
-			peersList = toPeerList(((String) info.get("peers")).getBytes());
-		} else {
-			peersList = new ArrayList<>();
-			ArrayList<HashMap<String, Object>> list = (ArrayList<HashMap<String, Object>>) info
-					.get("peers");
-			for (HashMap<String, Object> map : list) {
-				if (!map.get("ip").toString().equals("127.0.0.1")
-						|| !map.get("ip").toString().equals("::1")
-						|| Integer.parseInt(map.get("port").toString()) != UploadThread.port) {
-					Peer p = new Peer(map.get("ip").toString(),
-							Integer.parseInt(map.get("port").toString()),
-							FileManager.getFileManager().getTotalBlocks());
-					peersList.add(p);
-				}
-			}
-		}
+		peersList = toPeerList(info.get("peers"));
 		System.out.println("Peers obtained: " + peersList.toString());
 		// for (Peer p : peersList) {
 		// System.out.println(p);
@@ -195,21 +177,41 @@ public class TrackerThread extends Thread {
 		// peersList = getPeers((String) info.get("peers"));
 	}
 
-	private static List<Peer> toPeerList(byte[] data)
-			throws UnknownHostException {
-		List<Peer> result = new ArrayList<Peer>();
-		ByteBuffer peers = ByteBuffer.wrap(data);
+	@SuppressWarnings("unchecked")
+	private static List<Peer> toPeerList(Object o) throws UnknownHostException {
+		List<Peer> result = null;
+		if (o instanceof String) {
+			byte[] data = ((String) o).getBytes();
+			result = new ArrayList<Peer>();
+			ByteBuffer peers = ByteBuffer.wrap(data);
 
-		for (int i = 0; i < data.length / 6; i++) {
-			byte[] ipBytes = new byte[4];
-			peers.get(ipBytes);
-			InetAddress ip = InetAddress.getByAddress(ipBytes);
-			int port = (0xFF & (int) peers.get()) << 8
-					| (0xFF & (int) peers.get());
-			result.add(new Peer(ip.getHostAddress(), port, FileManager
-					.getFileManager().getTotalBlocks()));
+			for (int i = 0; i < data.length / 6; i++) {
+				byte[] ipBytes = new byte[4];
+				peers.get(ipBytes);
+				InetAddress ip = InetAddress.getByAddress(ipBytes);
+				int port = (0xFF & (int) peers.get()) << 8
+						| (0xFF & (int) peers.get());
+				if (!ip.getHostAddress().equals("127.0.0.1")
+						|| !ip.getHostAddress().equals("::1")
+						|| port != UploadThread.port) {
+					result.add(new Peer(ip.getHostAddress(), port, FileManager
+							.getFileManager().getTotalBlocks()));
+				}
+			}
+		} else {
+			result = new ArrayList<>();
+			ArrayList<HashMap<String, Object>> list = (ArrayList<HashMap<String, Object>>) o;
+			for (HashMap<String, Object> map : list) {
+				if (!map.get("ip").toString().equals("127.0.0.1")
+						|| !map.get("ip").toString().equals("::1")
+						|| Integer.parseInt(map.get("port").toString()) != UploadThread.port) {
+					Peer p = new Peer(map.get("ip").toString(),
+							Integer.parseInt(map.get("port").toString()),
+							FileManager.getFileManager().getTotalBlocks());
+					result.add(p);
+				}
+			}
 		}
-
 		return result;
 	}
 

@@ -1,30 +1,33 @@
 package es.deusto.ingenieria.ssdd.torrent.data;
 
+import java.util.ArrayList;
+
 public class BlockTemp {
 
-	private int pos;
-	private byte[] bytes;
-	private int miniBlocks = 0;
+	private final int pos;
+	private final byte[] bytes;
+	private final ArrayList<Integer> miniBlocks;
+	private int bytesAdded = 0;
 	private int nextMiniBlock = 0;
 
-	public BlockTemp(int pos, int length) {
+	public BlockTemp(int pos, int blockSize, int miniBlockSize) {
 		this.pos = pos;
-		bytes = new byte[length];
+		bytes = new byte[blockSize];
+		miniBlocks = new ArrayList<>();
+		for (int i = 0; i < bytes.length; i += miniBlockSize) {
+			miniBlocks.add(i);
+		}
 	}
 
 	public synchronized void addBytes(byte[] b, int offset) {
 		for (int i = offset, j = 0; i < bytes.length && j < b.length; i++, j++) {
 			bytes[i] = b[j];
 		}
-		miniBlocks += b.length;
-	}
-
-	public int getStartOffset() {
-		return miniBlocks;
+		bytesAdded += b.length;
 	}
 
 	public boolean isFinished() {
-		return miniBlocks >= bytes.length;
+		return bytesAdded >= bytes.length;
 	}
 
 	public byte[] getBytes() {
@@ -35,16 +38,29 @@ public class BlockTemp {
 		return pos;
 	}
 
-	public void miniBlockStarted(int length) {
-		nextMiniBlock += length;
-	}
+	// public void miniBlockStarted(int length) {
+	// nextMiniBlock += length;
+	// }
+	//
+	// public void miniBlockDownloadFailed(int length) {
+	// nextMiniBlock -= length;
+	// }
 
-	public void miniBlockDownloadFailed(int length) {
-		nextMiniBlock -= length;
+	public void miniBlockDownloadFailed(int miniblock) {
+		synchronized (miniBlocks) {
+			miniBlocks.add(miniblock);
+		}
 	}
 
 	public int getNextMiniBlock() {
-		return nextMiniBlock;
+		// return nextMiniBlock;
+		synchronized (miniBlocks) {
+			return miniBlocks.remove(0);
+		}
+	}
+
+	public boolean hasMoreMiniBlocks() {
+		return !miniBlocks.isEmpty();
 	}
 
 	public int size() {

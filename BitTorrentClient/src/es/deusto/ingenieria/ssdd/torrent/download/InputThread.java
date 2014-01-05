@@ -36,6 +36,11 @@ public class InputThread extends Thread {
 			String bufferStr = new String(buffer);
 			System.out.println(bufferStr);
 
+			if (buffer.length == 0) {
+				listener.messageReceived(null);
+				return;
+			}
+
 			listener.handshakeReceived();
 
 			if (buffer.length > buffer[0] + 49) {

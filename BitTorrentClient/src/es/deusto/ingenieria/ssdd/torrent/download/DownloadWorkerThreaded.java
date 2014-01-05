@@ -125,15 +125,15 @@ public class DownloadWorkerThreaded extends Thread implements InputListener {
 			}
 			if (bitfield != null && bitfield.length != 0) {
 				peer.setBitfield(bitfield);
-				if (peer.getBitfield()[block] < 1) {
-					System.out
-							.println(this.getName()
-									+ " - Peer does not have the block for this worker");
-					return true;
-				}
-				System.out.println(this.getName() + " - Peer has block "
-						+ block);
 				if (downloaded == null) {
+					if (peer.getBitfield()[block] < 1) {
+						System.out
+								.println(this.getName()
+										+ " - Peer does not have the block for this worker");
+						return true;
+					}
+					System.out.println(this.getName() + " - Peer has block "
+							+ block);
 					return requestBlock();
 				}
 			}
