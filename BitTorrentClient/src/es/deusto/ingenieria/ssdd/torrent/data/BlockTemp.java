@@ -64,7 +64,8 @@ public class BlockTemp {
 	}
 
 	public int getMiniBlockSize(int miniBlock) {
-		if (miniBlock == lastMiniBlock) {
+		int lastSize = bytes.length % TrackerThread.subBlockSize;
+		if (miniBlock == lastMiniBlock && lastSize != 0) {
 			return bytes.length % TrackerThread.subBlockSize;
 		} else {
 			return TrackerThread.subBlockSize;
