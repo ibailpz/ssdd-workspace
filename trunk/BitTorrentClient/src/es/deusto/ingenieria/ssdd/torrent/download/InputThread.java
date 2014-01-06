@@ -34,7 +34,8 @@ public class InputThread extends Thread {
 			System.out.println(getName() + " - Read handshake: "
 					+ Arrays.toString(buffer));
 			String bufferStr = new String(buffer);
-			System.out.println(bufferStr);
+			System.out.println(getName() + " - Read handshake string: "
+					+ bufferStr);
 
 			if (buffer.length == 0) {
 				listener.messageReceived(null);
@@ -119,9 +120,11 @@ public class InputThread extends Thread {
 			// .parseMessage(buffer));
 			// } while (!stop);
 		} catch (IOException e) {
+			System.err.println(getName() + " - " + e.getMessage());
 			e.printStackTrace();
-			listener.messageReceived(null);
 		}
+		listener.messageReceived(null);
+		System.out.println(getName() + " - InputThread finished");
 	}
 
 	// private void readInput(byte[] buffer) throws IOException {
@@ -145,6 +148,7 @@ public class InputThread extends Thread {
 		byte[] buffer = new byte[BUFFER_SIZE];
 		int read = in.read(buffer);
 		if (read < 0) {
+			System.out.println(getName() + " - Input closed");
 			stop = true;
 			return new byte[0];
 		} else if (read == BUFFER_SIZE) {

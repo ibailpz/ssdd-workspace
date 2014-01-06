@@ -5,7 +5,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -101,17 +100,11 @@ public class FileManager {
 				if (!tempData.exists()) {
 					System.out
 							.println("FileManager - No temp data. Creating temp file...");
-					int length = this.metainfo.getInfo().getLength();
-					length += (this.blocks.length * 4);
-					System.out
-							.println(length + " , " + tempData.getFreeSpace());
 					// if (length >= data.getFreeSpace()) {
 					// throw new IOException("Not enough space to create file");
 					// }
 					tempData.createNewFile();
-					FileOutputStream fos = new FileOutputStream(tempData);
-					fillFile(length, fos);
-					fos.close();
+					initTemp();
 					System.out.println("FileManager - Temp file created");
 				} else {
 					System.out
@@ -136,6 +129,14 @@ public class FileManager {
 				}
 			}
 		}
+	}
+
+	private void initTemp() throws IOException {
+		int length = this.metainfo.getInfo().getLength();
+		length += (this.blocks.length * 4);
+		FileOutputStream fos = new FileOutputStream(tempData);
+		fillFile(length, fos);
+		fos.close();
 	}
 
 	private void fillFile(int length, FileOutputStream fos) throws IOException {
@@ -183,10 +184,11 @@ public class FileManager {
 				System.out.println("FileManager - Checking block " + pos);
 				byte[] blockHash = ToolKit.generateSHA1Hash(bytes);
 				System.out.println("FileManager - Hash comparison:");
-				System.out.print("\tOriginal:  "
+				System.out.println("\tOriginal:  "
 						+ Arrays.toString(metainfo.getInfo().getByteSHA1()
 								.get(pos)));
-				System.out.print("\tGenerated: " + Arrays.toString(blockHash));
+				System.out
+						.println("\tGenerated: " + Arrays.toString(blockHash));
 				byte[] asciiHash = new String(blockHash).getBytes("ASCII");
 				if (Arrays.equals(asciiHash, metainfo.getInfo().getByteSHA1()
 						.get(pos))) {
@@ -277,11 +279,11 @@ public class FileManager {
 				if (isFinished()) {
 					// fis = new FileInputStream(data);
 					raf = new RandomAccessFile(data, "r");
-					loadBlock(index, bytes, raf, false);
+					return loadBlock(index, bytes, raf, false);
 				} else {
 					// fis = new FileInputStream(tempData);
 					raf = new RandomAccessFile(tempData, "r");
-					loadBlock(index, bytes, raf, true);
+					return loadBlock(index, bytes, raf, true);
 				}
 			} catch (IOException ex) {
 				ex.printStackTrace();
@@ -321,8 +323,9 @@ public class FileManager {
 	 * @throws IOException
 	 *             If any error happens when accessing the file
 	 */
-	private void loadBlock(int index, byte[] bytes, RandomAccessFile raf,
+	private byte[] loadBlock(int index, byte[] bytes, RandomAccessFile raf,
 			boolean isTemp) throws IOException {
+		raf.seek(0);
 		if (isTemp) {
 			byte[] b = new byte[4];
 			int i = 0;
@@ -338,10 +341,12 @@ public class FileManager {
 						+ " is not in the temp file");
 			}
 			raf.seek((this.blocks.length * 4) + (i * getBlockLength()));
-			raf.read(bytes);
+			int read = raf.read(bytes);
+			return Arrays.copyOf(bytes, read);
 		} else {
 			raf.seek((index * getBlockLength()));
-			raf.read(bytes);
+			int read = raf.read(bytes);
+			return Arrays.copyOf(bytes, read);
 		}
 	}
 
@@ -383,6 +388,14 @@ public class FileManager {
 		return pos;
 	}
 
+	public int getBlockSize(int block) {
+		if (block == (blocks.length - 1)) {
+			return getTotalSize() - (getBlockLength() * (blocks.length - 1));
+		} else {
+			return getBlockLength();
+		}
+	}
+
 	/**
 	 * Checks the whole temp file and writes it to its final file format
 	 * 
@@ -396,70 +409,81 @@ public class FileManager {
 			// TODO Check and write file
 			// Read the initial array to know the saved position of each block
 			tempCompleteFile.getParentFile().mkdirs();
-			byte[] generatedHash = ToolKit.generateSHA1Hash(ToolKit
-					.fileToByteArray(tempData.getAbsolutePath()));
-			System.out.println("FileManager - Hash comparison:");
-			System.out.print("\tOriginal:  "
-					+ Arrays.toString(metainfo.getInfo().getInfoHash()));
+
+			// FileInputStream tempDataInput = null;
+			RandomAccessFile tempDataInput = null;
+			FileOutputStream dataOutput = null;
+			boolean completed = false;
 			try {
-				generatedHash = new String(generatedHash).getBytes("ASCII");
-			} catch (UnsupportedEncodingException e1) {
-				e1.printStackTrace();
-			}
-			System.out.print("\tGenerated: " + Arrays.toString(generatedHash));
-			if (Arrays.equals(metainfo.getInfo().getInfoHash(), generatedHash)) {
-				System.out
-						.println("FileManager - Hash check successful. Generating final file...");
-				// FileInputStream tempDataInput = null;
-				RandomAccessFile tempDataInput = null;
-				FileOutputStream dataOutput = null;
-				boolean completed = false;
-				try {
-					// tempDataInput = new FileInputStream(tempData);
-					tempDataInput = new RandomAccessFile(tempData, "r");
-					// int[] order = getBlocksStoredOrder(tempDataInput);
-					dataOutput = new FileOutputStream(data);
-					// storeData(order, tempDataInput, dataOutput);
-					storeData(new int[0], tempDataInput, dataOutput);
-					completed = true;
-					observer.finished();
-					return true;
-				} catch (IOException e) {
-					System.err.println("FileManager - " + e.getMessage());
-					e.printStackTrace();
-					return false;
-				} finally {
-					if (tempDataInput != null) {
-						try {
-							tempDataInput.close();
-						} catch (IOException e) {
-							System.err.println("FileManager - "
-									+ e.getMessage());
-							e.printStackTrace();
-						}
-					}
-					if (dataOutput != null) {
-						try {
-							dataOutput.close();
-						} catch (IOException e) {
-							System.err.println("FileManager - "
-									+ e.getMessage());
-							e.printStackTrace();
-						}
-					}
-					if (completed) {
-						tempData.delete();
+				// tempDataInput = new FileInputStream(tempData);
+				tempDataInput = new RandomAccessFile(tempData, "r");
+				// int[] order = getBlocksStoredOrder(tempDataInput);
+				dataOutput = new FileOutputStream(data);
+				// storeData(order, tempDataInput, dataOutput);
+				storeData(new int[0], tempDataInput, dataOutput);
+			} catch (IOException e) {
+				System.err.println("FileManager - " + e.getMessage());
+				e.printStackTrace();
+				return false;
+			} finally {
+				if (tempDataInput != null) {
+					try {
+						tempDataInput.close();
+					} catch (IOException e) {
+						System.err.println("FileManager - " + e.getMessage());
+						e.printStackTrace();
 					}
 				}
-			} else {
-				System.out
-						.println("FileManager - Hash check failed. Starting over again...");
-				observer.restart();
-				return false;
+				if (dataOutput != null) {
+					try {
+						dataOutput.close();
+					} catch (IOException e) {
+						System.err.println("FileManager - " + e.getMessage());
+						e.printStackTrace();
+					}
+				}
 			}
+			completed = checkFinalFile();
+			if (completed) {
+				observer.finished();
+				tempData.delete();
+			} else {
+				data.delete();
+			}
+			return completed;
+		} else {
+			System.out.println("FileManager - File is not complete yet");
+			return false;
 		}
-		System.out.println("FileManager - File is not complete yet");
-		return false;
+	}
+
+	private boolean checkFinalFile() {
+		byte[] generatedHash = ToolKit.generateSHA1Hash(ToolKit
+				.fileToByteArray(data.getAbsolutePath()));
+		System.out.println("FileManager - Hash comparison:");
+		System.out.println("\tOriginal:  "
+				+ Arrays.toString(metainfo.getInfo().getInfoHash()));
+		// try {
+		// generatedHash = new String(generatedHash).getBytes("ASCII");
+		// } catch (UnsupportedEncodingException e1) {
+		// e1.printStackTrace();
+		// }
+		System.out.println("\tGenerated: " + Arrays.toString(generatedHash));
+		if (Arrays.equals(metainfo.getInfo().getInfoHash(), generatedHash)) {
+			System.out
+					.println("FileManager - Hash check successful. Generating final file...");
+			return true;
+		} else {
+			System.out
+					.println("FileManager - Hash check failed. Starting over again...");
+			try {
+				initTemp();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			observer.restart();
+			return false;
+		}
 	}
 
 	private int[] getBlocksStoredOrder(FileInputStream tempDataInput)
@@ -483,7 +507,7 @@ public class FileManager {
 		for (int i = 0; i < this.blocks.length; i++) {
 			bytes = new byte[getBlockLength()];
 			// loadBlock(order[i], bytes, tempDataInput);
-			loadBlock(order[i], bytes, raf, true);
+			bytes = loadBlock(i, bytes, raf, true);
 			dataOutput.write(bytes);
 		}
 	}
