@@ -29,7 +29,7 @@ public class Peer {
 		return bitfield;
 	}
 
-	public void setBitfield(int[] bitfield) {
+	public synchronized void setBitfield(int[] bitfield) {
 		// this.bitfield = bitfield;
 		if (this.bitfield.length != bitfield.length) {
 			System.out.println("Different length bitfield received. Weird...");
@@ -40,7 +40,7 @@ public class Peer {
 		}
 	}
 
-	public void setBitfieldPosition(int position, int state) {
+	public synchronized void setBitfieldPosition(int position, int state) {
 		bitfield[position] = state;
 	}
 

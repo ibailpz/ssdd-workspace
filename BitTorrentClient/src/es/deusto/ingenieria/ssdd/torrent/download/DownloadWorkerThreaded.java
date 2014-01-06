@@ -29,11 +29,13 @@ public class DownloadWorkerThreaded extends Thread implements InputListener {
 	private Peer peer;
 	private int block;
 	private int subBlock;
+	private int requestSize;
 	private byte[] downloaded = null;
+	private boolean requestSent = false;
 	private LinkedBlockingQueue<PeerProtocolMessage> queue = new LinkedBlockingQueue<>();
 
 	public DownloadWorkerThreaded(byte[] info_hash, Peer peer, int block,
-			int subBlock) {
+			int subBlock, int requestSize) {
 		super("DownloadWorker_" + block + "-" + subBlock + "_" + peer.getIp()
 				+ ":" + peer.getPort());
 		threadName = block + "-" + subBlock + "_" + peer.getIp() + ":"
@@ -42,6 +44,7 @@ public class DownloadWorkerThreaded extends Thread implements InputListener {
 		this.peer = peer;
 		this.block = block;
 		this.subBlock = subBlock;
+		this.requestSize = requestSize;
 	}
 
 	@Override
@@ -71,8 +74,6 @@ public class DownloadWorkerThreaded extends Thread implements InputListener {
 
 			do {
 				PeerProtocolMessage message = queue.take();
-				System.out.println(this.getName() + " - Message read: "
-						+ (message == null ? "null" : message.getType()));
 				stop |= handleMessage(message);
 				try {
 					Thread.sleep(100);
@@ -125,16 +126,17 @@ public class DownloadWorkerThreaded extends Thread implements InputListener {
 			}
 			if (bitfield != null && bitfield.length != 0) {
 				peer.setBitfield(bitfield);
-				if (downloaded == null) {
+				if (!requestSent) {
 					if (peer.getBitfield()[block] < 1) {
 						System.out
 								.println(this.getName()
 										+ " - Peer does not have the block for this worker");
 						return true;
+					} else {
+						System.out.println(this.getName()
+								+ " - Peer has block " + block);
+						return requestBlock();
 					}
-					System.out.println(this.getName() + " - Peer has block "
-							+ block);
-					return requestBlock();
 				}
 			}
 			return false;
@@ -151,7 +153,7 @@ public class DownloadWorkerThreaded extends Thread implements InputListener {
 				return true;
 			}
 			peer.setBitfieldPosition(pos, 1);
-			if (downloaded == null) {
+			if (!requestSent) {
 				if (pos == block) {
 					System.out.println(this.getName() + " - Peer has block "
 							+ pos);
@@ -162,7 +164,7 @@ public class DownloadWorkerThreaded extends Thread implements InputListener {
 					return true;
 				}
 			}
-			return false;
+			return true;
 		case UNCHOKE:
 			peer.setChockedUs(false);
 			return false;
@@ -182,11 +184,11 @@ public class DownloadWorkerThreaded extends Thread implements InputListener {
 	}
 
 	private boolean requestBlock() throws IOException {
-		RequestMsg req = new RequestMsg(block, subBlock,
-				TrackerThread.subBlockSize);
+		RequestMsg req = new RequestMsg(block, subBlock, requestSize);
 		out.write(req.getBytes());
-		System.out.println(this.getName()
-				+ " - Request sent to download subblock " + subBlock
+		requestSent = true;
+		System.out.println(this.getName() + " - Request sent to download "
+				+ requestSize + " bytes from subblock " + subBlock
 				+ " from block " + block);
 		return false;
 	}
@@ -194,7 +196,8 @@ public class DownloadWorkerThreaded extends Thread implements InputListener {
 	@Override
 	public void messageReceived(PeerProtocolMessage message) {
 		try {
-			System.out.println(getName() + " - Message put: " + message);
+			System.out.println(getName() + " - Message put: "
+					+ (message == null ? "null" : message.getType()));
 			if (message != null) {
 				queue.put(message);
 			} else {
