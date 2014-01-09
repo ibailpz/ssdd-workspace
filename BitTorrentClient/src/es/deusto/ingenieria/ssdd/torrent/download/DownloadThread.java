@@ -98,8 +98,9 @@ public class DownloadThread extends Thread {
 			finished = FileManager.getFileManager().checkAndWriteFile();
 		}
 		System.out.println("DownloadThread - DownloadThread stopped and "
-				+ (finished ? "" : "not ") + "finished");
+				+ (finished ? "" : "not ") + "finished downloading");
 		// TrackerThread.getInstance().interrupt();
+		// finished = FileManager.getFileManager().checkAndWriteFile();
 		WindowManager.exitBlocker.release();
 	}
 
@@ -117,12 +118,18 @@ public class DownloadThread extends Thread {
 				}
 			}
 			if (bt.hasMoreMiniBlocks()) {
-				for (Peer p : peerList) {
-					if (p.getBitfield()[pos] != 0) {
+				for (int i = 0; i < peerList.size(); i++) {
+					Peer p = peerList.get(i);
+					if (p.isChockedUs()) {
+						peerList.remove(i);
+						i--;
+					} else if (p.getBitfield()[pos] != 0) {
 						blockSubBlock[0] = pos;
 						blockSubBlock[1] = bt.getNextMiniBlock();
-						blockSubBlock[2] = bt.getMiniBlockSize(blockSubBlock[1]);
+						blockSubBlock[2] = bt
+								.getMiniBlockSize(blockSubBlock[1]);
 						blocksControl.put(pos, bt);
+						peerList.add(peerList.remove(i));
 						return p;
 					}
 				}

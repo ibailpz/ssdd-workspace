@@ -9,6 +9,7 @@ public class SingleFileInfoDictionary extends InfoDictionary {
 	//(optional) a 32-character hexadecimal string corresponding to the MD5 sum of the file
 	private String md5sum;
 	
+	@Override
 	public int getLength() {
 		return length;
 	}

@@ -7,8 +7,12 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.List;
 
+import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.FileDictionary;
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.MetainfoFile;
+import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.MultipleFileInfoDictionary;
+import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.SingleFileInfoDictionary;
 import es.deusto.ingenieria.ssdd.bitTorrent.util.ToolKit;
 
 public class FileManager {
@@ -17,7 +21,7 @@ public class FileManager {
 
 	private MetainfoFile<?> metainfo;
 	private FileObserver observer;
-	private File tempCompleteFile;
+	// private File tempCompleteFile;
 	private File data;
 	private File tempData;
 
@@ -38,9 +42,9 @@ public class FileManager {
 		data = new File(parent, this.metainfo.getInfo().getName());
 		tempData = new File(parent, this.metainfo.getInfo().getName()
 				+ ".ttemp");
-		tempCompleteFile = new File(new File(
-				System.getProperty("java.io.tmpdir"), "BitTorrent"),
-				this.metainfo.getInfo().getName());
+		// tempCompleteFile = new File(new File(
+		// System.getProperty("java.io.tmpdir"), "BitTorrent"),
+		// this.metainfo.getInfo().getName());
 		this.blocks = new int[metainfo.getInfo().getByteSHA1().size()];
 		for (int i = 0; i < this.blocks.length; i++) {
 			this.blocks[i] = 0;
@@ -115,19 +119,18 @@ public class FileManager {
 						fis.read(b);
 						int pos = ByteBuffer.wrap(b).getInt();
 						if (pos > -1) {
-							// TODO Check
 							this.blocks[pos] = 1;
 							downloadedBlocks++;
 						} else {
 							break;
 						}
 					}
-					System.out.println("FileManager - Current block status: "
-							+ Arrays.toString(this.blocks));
 					fis.close();
 					System.out.println("FileManager - Data loaded");
 				}
 			}
+			System.out.println("FileManager - Current block status: "
+					+ Arrays.toString(this.blocks));
 		}
 	}
 
@@ -199,6 +202,7 @@ public class FileManager {
 					// FileOutputStream fos = new FileOutputStream(tempData);
 					byte[] posArray = ByteBuffer.allocate(4).putInt(pos)
 							.array();
+					// FIXME check getDownloadedSize(), watch last block
 					raf.seek((blocks.length * 4) + getDownloadedSize());
 					raf.write(bytes);
 					raf.seek(downloadedBlocks * 4);
@@ -233,7 +237,13 @@ public class FileManager {
 	}
 
 	public int getDownloadedSize() {
-		return this.metainfo.getInfo().getPieceLength() * this.downloadedBlocks;
+		if (this.blocks[this.blocks.length - 1] > 0) {
+			return (this.metainfo.getInfo().getPieceLength() * (this.downloadedBlocks - 1))
+					+ this.getBlockSize(this.blocks.length - 1);
+		} else {
+			return this.metainfo.getInfo().getPieceLength()
+					* this.downloadedBlocks;
+		}
 	}
 
 	public int getRemainingSize() {
@@ -259,7 +269,7 @@ public class FileManager {
 	public byte[] getBitfield() {
 		byte[] bitfield = new byte[blocks.length];
 		for (int i = 0; i < blocks.length; i++) {
-			bitfield[i] = (byte) blocks[i];
+			bitfield[i] = (byte) (blocks[i] < 1 ? 0 : 1);
 		}
 		// System.out.println("FileManager - Bitfield[" + bitfield.length +
 		// "]: "
@@ -278,12 +288,14 @@ public class FileManager {
 			try {
 				if (isFinished()) {
 					// fis = new FileInputStream(data);
-					raf = new RandomAccessFile(data, "r");
-					return loadBlock(index, bytes, raf, false);
+					// raf = new RandomAccessFile(data, "r");
+					// return loadBlock(index, bytes, raf, false);
+					return loadBlock(index, bytes, false);
 				} else {
 					// fis = new FileInputStream(tempData);
-					raf = new RandomAccessFile(tempData, "r");
-					return loadBlock(index, bytes, raf, true);
+					// raf = new RandomAccessFile(tempData, "r");
+					// return loadBlock(index, bytes, raf, true);
+					return loadBlock(index, bytes, true);
 				}
 			} catch (IOException ex) {
 				ex.printStackTrace();
@@ -323,30 +335,70 @@ public class FileManager {
 	 * @throws IOException
 	 *             If any error happens when accessing the file
 	 */
-	private byte[] loadBlock(int index, byte[] bytes, RandomAccessFile raf,
-			boolean isTemp) throws IOException {
-		raf.seek(0);
-		if (isTemp) {
-			byte[] b = new byte[4];
-			int i = 0;
-			for (; i < this.blocks.length; i++) {
-				raf.read(b);
-				int pos = ByteBuffer.wrap(b).getInt();
-				if (pos == index) {
-					break;
+	private byte[] loadBlock(int index, byte[] bytes, boolean isTemp)
+			throws IOException {
+		RandomAccessFile raf = null;
+		try {
+			if (isTemp) {
+				raf = new RandomAccessFile(tempData, "r");
+				raf.seek(0);
+				byte[] b = new byte[4];
+				int i = 0;
+				for (; i < this.blocks.length; i++) {
+					raf.read(b);
+					int pos = ByteBuffer.wrap(b).getInt();
+					if (pos == index) {
+						break;
+					}
+				}
+				if (i == this.blocks.length) {
+					throw new IOException("Block " + index
+							+ " is not in the temp file");
+				}
+				raf.seek((this.blocks.length * 4) + (i * getBlockLength()));
+				int read = raf.read(bytes);
+				return Arrays.copyOf(bytes, read);
+			} else {
+				// FIXME do it with multiple files
+				if (metainfo.getInfo() instanceof SingleFileInfoDictionary) {
+					raf = new RandomAccessFile(data, "r");
+					raf.seek(index * getBlockLength());
+					int read = raf.read(bytes);
+					return Arrays.copyOf(bytes, read);
+				} else {
+					MultipleFileInfoDictionary info = (MultipleFileInfoDictionary) metainfo
+							.getInfo();
+					List<FileDictionary> files = info.getFiles();
+					int bytePos = index * getBlockLength();
+					int fileIndex = 0;
+					boolean found = false;
+					int fileBytes = 0;
+					do {
+						fileBytes += files.get(fileIndex).getLength();
+						if (fileBytes > bytePos) {
+							found = true;
+						} else {
+							fileIndex++;
+						}
+					} while (!found);
+					int read = 0;
+					do {
+						raf = new RandomAccessFile(new File(data.getParent(),
+								files.get(fileIndex).getPath()), "r");
+						read += raf.read(bytes, read, bytes.length - read);
+						fileIndex++;
+					} while (read < bytes.length && fileIndex < files.size());
+					if (read < bytes.length) {
+						return null;
+					} else {
+						return bytes;
+					}
 				}
 			}
-			if (i == this.blocks.length) {
-				throw new IOException("Block " + index
-						+ " is not in the temp file");
+		} finally {
+			if (raf != null) {
+				raf.close();
 			}
-			raf.seek((this.blocks.length * 4) + (i * getBlockLength()));
-			int read = raf.read(bytes);
-			return Arrays.copyOf(bytes, read);
-		} else {
-			raf.seek((index * getBlockLength()));
-			int read = raf.read(bytes);
-			return Arrays.copyOf(bytes, read);
 		}
 	}
 
@@ -406,68 +458,83 @@ public class FileManager {
 		System.out.println("FileManager - Checking temp file...");
 		if (isFinished() && tempData.exists()) {
 			observer.finishing();
-			// TODO Check and write file
-			// Read the initial array to know the saved position of each block
-			tempCompleteFile.getParentFile().mkdirs();
-
+			// tempCompleteFile.getParentFile().mkdirs();
 			// FileInputStream tempDataInput = null;
-			RandomAccessFile tempDataInput = null;
-			FileOutputStream dataOutput = null;
-			boolean completed = false;
+
+			// RandomAccessFile tempDataInput = null;
+			// FileOutputStream dataOutput = null;
+
+			// boolean completed = false;
 			try {
 				// tempDataInput = new FileInputStream(tempData);
-				tempDataInput = new RandomAccessFile(tempData, "r");
-				// int[] order = getBlocksStoredOrder(tempDataInput);
-				dataOutput = new FileOutputStream(data);
-				// storeData(order, tempDataInput, dataOutput);
-				storeData(new int[0], tempDataInput, dataOutput);
+
+				// tempDataInput = new RandomAccessFile(tempData, "r");
+				// dataOutput = new FileOutputStream(data);
+				// storeData(tempDataInput, dataOutput);
+				storeData();
 			} catch (IOException e) {
 				System.err.println("FileManager - " + e.getMessage());
 				e.printStackTrace();
+				deleteFileOrDirectory(data);
 				return false;
-			} finally {
-				if (tempDataInput != null) {
-					try {
-						tempDataInput.close();
-					} catch (IOException e) {
-						System.err.println("FileManager - " + e.getMessage());
-						e.printStackTrace();
-					}
-				}
-				if (dataOutput != null) {
-					try {
-						dataOutput.close();
-					} catch (IOException e) {
-						System.err.println("FileManager - " + e.getMessage());
-						e.printStackTrace();
-					}
-				}
 			}
-			completed = checkFinalFile();
-			if (completed) {
-				observer.finished();
-				tempData.delete();
-			} else {
-				data.delete();
-			}
-			return completed;
+			// finally {
+			// if (tempDataInput != null) {
+			// try {
+			// tempDataInput.close();
+			// } catch (IOException e) {
+			// System.err.println("FileManager - " + e.getMessage());
+			// e.printStackTrace();
+			// }
+			// }
+			// if (dataOutput != null) {
+			// try {
+			// dataOutput.close();
+			// } catch (IOException e) {
+			// System.err.println("FileManager - " + e.getMessage());
+			// e.printStackTrace();
+			// }
+			// }
+			// }
+
+			// completed = checkFinalFile();
+			// if (completed) {
+			// observer.finished();
+			// tempData.delete();
+			// } else {
+			// deleteFileOrDirectory(data);
+			// }
+			// return completed;
+
+			observer.finished();
+			tempData.delete();
+			return true;
 		} else {
 			System.out.println("FileManager - File is not complete yet");
 			return false;
 		}
 	}
 
+	private void deleteFileOrDirectory(File file) {
+		if (file.isDirectory()) {
+			File[] listFiles = file.listFiles();
+			for (File f : listFiles) {
+				deleteFileOrDirectory(f);
+			}
+		}
+		file.delete();
+	}
+
 	private boolean checkFinalFile() {
-		byte[] generatedHash = ToolKit.generateSHA1Hash(ToolKit
-				.fileToByteArray(data.getAbsolutePath()));
+		// byte[] generatedHash = ToolKit.generateSHA1Hash(ToolKit
+		// .fileToByteArray(data.getAbsolutePath()));
+		byte[] generatedHash = ToolKit.generateSHA1HashForFile(data);
 		System.out.println("FileManager - Hash comparison:");
+		// System.out.println("\tOriginal:  "
+		// + Arrays.toString(metainfo.getInfo().getInfoHash()));
+		// System.out.println("\tGenerated: " + Arrays.toString(generatedHash));
 		System.out.println("\tOriginal:  "
 				+ Arrays.toString(metainfo.getInfo().getInfoHash()));
-		// try {
-		// generatedHash = new String(generatedHash).getBytes("ASCII");
-		// } catch (UnsupportedEncodingException e1) {
-		// e1.printStackTrace();
-		// }
 		System.out.println("\tGenerated: " + Arrays.toString(generatedHash));
 		if (Arrays.equals(metainfo.getInfo().getInfoHash(), generatedHash)) {
 			System.out
@@ -486,43 +553,97 @@ public class FileManager {
 		}
 	}
 
-	private int[] getBlocksStoredOrder(FileInputStream tempDataInput)
-			throws IOException {
-		int[] order = new int[blocks.length];
-		byte[] b = new byte[4];
-		for (int i = 0; i < this.blocks.length; i++) {
-			tempDataInput.read(b);
-			int pos = ByteBuffer.wrap(b).getInt();
-			order[i] = pos;
+	private void storeData() throws IOException {
+		RandomAccessFile tempDataInput = new RandomAccessFile(tempData, "r");
+		FileOutputStream dataOutput = null;
+		try {
+			if (metainfo.getInfo() instanceof SingleFileInfoDictionary) {
+				dataOutput = new FileOutputStream(data);
+				byte[] bytes;
+				for (int i = 0; i < this.blocks.length; i++) {
+					bytes = new byte[getBlockLength()];
+					// bytes = loadBlock(i, bytes, tempDataInput, true);
+					bytes = loadBlock(i, bytes, true);
+					dataOutput.write(bytes);
+				}
+			} else {
+				// TODO Handle storage with multiple files
+				// data.mkdir();
+				MultipleFileInfoDictionary info = (MultipleFileInfoDictionary) metainfo
+						.getInfo();
+				List<FileDictionary> files = info.getFiles();
+				byte[] bytes = null;
+				int fileIndex = 0;
+				int blockIndex = 0;
+				int wrote = 0;
+				boolean read = true;
+				boolean isFinished = false;
+				File current = new File(data.getParent(), files.get(fileIndex)
+						.getPath());
+				current.getParentFile().mkdirs();
+				dataOutput = new FileOutputStream(current);
+				do {
+					if (read) {
+						bytes = new byte[getBlockLength()];
+						// bytes = loadBlock(blockIndex, bytes, tempDataInput,
+						// true);
+						bytes = loadBlock(blockIndex, bytes, true);
+					} else {
+						read = true;
+					}
+					int left = files.get(fileIndex).getLength() - wrote;
+					if (bytes.length > left) {
+						dataOutput.write(bytes, 0, left);
+						dataOutput.close();
+						fileIndex++;
+						if (fileIndex == files.size()) {
+							isFinished = true;
+						} else {
+							current = new File(data.getParent(), info
+									.getFiles().get(fileIndex).getPath());
+							current.getParentFile().mkdirs();
+							dataOutput = new FileOutputStream(current);
+							bytes = Arrays.copyOfRange(bytes, left,
+									bytes.length);
+							read = false;
+							wrote = 0;
+						}
+					} else {
+						dataOutput.write(bytes);
+						wrote += bytes.length;
+						blockIndex++;
+					}
+				} while (!isFinished);
+				// long wrote = 0;
+				// bytes = new byte[getBlockLength()];
+				// bytes = loadBlock(0, bytes, tempDataInput, true);
+				// wrote += bytes.length;
+				// for (FileDictionary f : files) {
+				// dataOutput = new FileOutputStream(new File(data,
+				// f.getPath()));
+				//
+				// }
+			}
+		} finally {
+			if (dataOutput != null) {
+				dataOutput.close();
+			}
+			if (tempDataInput != null) {
+				tempDataInput.close();
+			}
 		}
-		return order;
 	}
-
-	private void storeData(int[] order, RandomAccessFile raf,
-			FileOutputStream dataOutput) throws IOException {
-		// TODO Is really order needed??
-		// int length = this.metainfo.getInfo().getLength();
-		// fillFile(length, dataOutput);
-		byte[] bytes;
-		for (int i = 0; i < this.blocks.length; i++) {
-			bytes = new byte[getBlockLength()];
-			// loadBlock(order[i], bytes, tempDataInput);
-			bytes = loadBlock(i, bytes, raf, true);
-			dataOutput.write(bytes);
-		}
-	}
-
-	// private void storeData(int[] order, FileInputStream tempDataInput,
-	// FileOutputStream dataOutput) throws IOException {
-	// // TODO Is really order needed??
-	// // int length = this.metainfo.getInfo().getLength();
-	// // fillFile(length, dataOutput);
+	// private void storeData(RandomAccessFile raf, FileOutputStream dataOutput)
+	// throws IOException {
+	// if (metainfo.getInfo() instanceof SingleFileInfoDictionary) {
 	// byte[] bytes;
 	// for (int i = 0; i < this.blocks.length; i++) {
 	// bytes = new byte[getBlockLength()];
-	// // loadBlock(order[i], bytes, tempDataInput);
-	// loadBlock(order[i], bytes, tempDataInput, true);
+	// bytes = loadBlock(i, bytes, raf, true);
 	// dataOutput.write(bytes);
+	// }
+	// } else {
+	//
 	// }
 	// }
 

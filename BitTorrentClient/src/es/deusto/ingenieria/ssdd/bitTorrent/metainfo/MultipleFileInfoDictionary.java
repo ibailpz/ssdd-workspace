@@ -15,6 +15,7 @@ public class MultipleFileInfoDictionary extends InfoDictionary {
 		this.files = new ArrayList<>();
 	}
 	
+	@Override
 	public int getLength() {
 		int length = 0;
 		

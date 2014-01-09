@@ -14,8 +14,8 @@ import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.BitfieldMsg;
 import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.Handsake;
 import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.PeerProtocolMessage;
 import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.PieceMsg;
+import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.RequestMsg;
 import es.deusto.ingenieria.ssdd.bitTorrent.peer.protocol.messages.UnChokeMsg;
-import es.deusto.ingenieria.ssdd.bitTorrent.util.ToolKit;
 import es.deusto.ingenieria.ssdd.torrent.file.FileManager;
 import es.deusto.ingenieria.ssdd.torrent.tracker.TrackerThread;
 
@@ -26,6 +26,7 @@ public class UploadWorker extends Thread {
 	private DataOutputStream out;
 	private Socket tcpSocket;
 	private int dataSent = 0;
+	private boolean isFinished = false;
 
 	public UploadWorker(Socket socket) {
 		super("UploadWorker_" + socket.getInetAddress().getHostAddress() + ":"
@@ -43,11 +44,17 @@ public class UploadWorker extends Thread {
 	public void run() {
 		System.out.println(this.getName() + " - UploadWorker started");
 		try {
-			byte[] bytes = new byte[68];
+			int length = in.read();
+			byte[] bytes = new byte[48 + length]; // 49 of handshake
+													// + read length
+													// - 1 byte read
+													// (usually 68 in total)
 			in.read(bytes);
 			byte[] info_hash = new byte[20];
 			ByteBuffer handshake = ByteBuffer.wrap(bytes);
-			handshake.get(new byte[28]);
+			handshake.get(new byte[length + 8]); // Read length
+													// + 8 zeros
+													// (usually 28)
 			handshake.get(info_hash);
 			System.out.println(this.getName() + " - Handshake read: "
 					+ new String(info_hash) + "; ours: "
@@ -75,37 +82,15 @@ public class UploadWorker extends Thread {
 				System.out.println(this.getName() + " - Send bitfield: "
 						+ Arrays.toString(bitfield.getBytes()));
 
-				// // Timer and TimerTask
-				// TimerTask timerTask;
-				// Timer timer = new Timer();
-				// boolean isFinished = false;
-				//
-				// while (!isFinished) {
-				// timerTask = new TimerTask() {
-				// @Override
-				// public void run() {
-				// UploadWorker.this.interrupt();
-				// System.out.println(UploadWorker.this.getName()
-				// + " - Timeout");
-				// }
-				// };
-				// timer.schedule(timerTask, 120000);
-				// PeerProtocolMessage message = readMessage(in);
-				// System.out.println(this.getName() + " - Message read: "
-				// + (message == null ? "null" : message.getType()));
-				// timerTask.cancel();
-				// isFinished = handleMessage(message, out);
-				// }
-
 				// Timer and TimerTask
 				TimerTask timerTask;
 				Timer timer = new Timer();
-				boolean isFinished = false;
 
-				while (!isFinished) {
+				while (!isFinished && !isInterrupted()) {
 					timerTask = new TimerTask() {
 						@Override
 						public void run() {
+							isFinished = true;
 							UploadWorker.this.interrupt();
 							System.out.println(UploadWorker.this.getName()
 									+ " - Timeout");
@@ -124,7 +109,7 @@ public class UploadWorker extends Thread {
 										+ " - Message read: "
 										+ (message == null ? "null" : message
 												.getType()));
-						isFinished = handleMessage(message);
+						isFinished |= handleMessage(message);
 						if (message != null) {
 							int len = buffer.length;
 							buffer = Arrays.copyOfRange(buffer,
@@ -135,7 +120,8 @@ public class UploadWorker extends Thread {
 						} else {
 							buffer = new byte[0];
 						}
-					} while (buffer.length > 0);
+					} while (!isFinished && buffer.length > 0
+							&& !isInterrupted());
 				}
 			} else {
 				System.out
@@ -203,26 +189,15 @@ public class UploadWorker extends Thread {
 			return true;
 		}
 		switch (message.getType()) {
-		// case PIECE:
-		// byte[] bitfield = FileManager.getFileManager().getBitfield();
-		// byte[] piece = message.getPayload();
-		// int index = ToolKit.bigEndianBytesToInt(piece, 0);
-		//
-		// if (bitfield[index] == 1) {
-		// System.out.println(this.getName() + " - Sending correct HAVE");
-		// HaveMsg haveMsg = new HaveMsg(index);
-		// out.write(haveMsg.getBytes());
-		// } else {
-		// System.out.println(this.getName() + " - No block, -1 HAVE");
-		// HaveMsg haveMsg = new HaveMsg(-1);
-		// out.write(haveMsg.getBytes());
-		// }
-		// return false;
 		case REQUEST:
-			byte[] request = message.getPayload();
-			int indexRequest = ToolKit.bigEndianBytesToInt(request, 0);
-			int begin = ToolKit.bigEndianBytesToInt(request, 4);
-			int length = ToolKit.bigEndianBytesToInt(request, 8);
+			RequestMsg req = (RequestMsg) message;
+			// byte[] request = message.getPayload();
+			// int indexRequest = ToolKit.bigEndianBytesToInt(request, 0);
+			// int begin = ToolKit.bigEndianBytesToInt(request, 4);
+			// int length = ToolKit.bigEndianBytesToInt(request, 8);
+			int indexRequest = req.getIndex();
+			int begin = req.getBegin();
+			int length = req.getRequestedLength();
 
 			byte[] block = FileManager.getFileManager().getBlock(indexRequest);
 			if (block == null) {
@@ -230,6 +205,11 @@ public class UploadWorker extends Thread {
 						+ " - Invalid block requested");
 				return true;
 			} else {
+				if (block.length - begin < length) {
+					System.out.println(this.getName()
+							+ " - Invalid block length requested");
+					return true;
+				}
 				byte[] send = new byte[length];
 				for (int i = begin, j = 0; i < block.length && j < length; i++, j++) {
 					send[j] = block[i];
