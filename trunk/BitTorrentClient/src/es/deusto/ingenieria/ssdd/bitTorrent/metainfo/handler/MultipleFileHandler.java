@@ -66,11 +66,11 @@ public class MultipleFileHandler extends MetainfoFileHandler<MultipleFileInfoDic
 				filename = new StringBuffer();
 				
 				for (int i=0; i<path.size(); i++) {
+					filename.append(path.get(i));
+					
 					if(i<path.size()-1) {
 						filename.append("/");
 					}
-					
-					filename.append(path.get(i));
 				}
 				
 				fileDictionary.setPath(filename.toString());

@@ -2,19 +2,18 @@ package es.deusto.ingenieria.ssdd.torrent.data;
 
 import java.util.ArrayList;
 
-import es.deusto.ingenieria.ssdd.torrent.tracker.TrackerThread;
-
 public class BlockTemp {
 
 	private final int pos;
 	private final byte[] bytes;
 	private final ArrayList<Integer> miniBlocks;
 	private int bytesAdded = 0;
-	private int nextMiniBlock = 0;
+	private final int miniBlockSize;
 	private final int lastMiniBlock;
 
 	public BlockTemp(int pos, int blockSize, int miniBlockSize) {
 		this.pos = pos;
+		this.miniBlockSize = miniBlockSize;
 		bytes = new byte[blockSize];
 		miniBlocks = new ArrayList<>();
 		for (int i = 0; i < bytes.length; i += miniBlockSize) {
@@ -64,11 +63,11 @@ public class BlockTemp {
 	}
 
 	public int getMiniBlockSize(int miniBlock) {
-		int lastSize = bytes.length % TrackerThread.subBlockSize;
+		int lastSize = bytes.length % miniBlockSize;
 		if (miniBlock == lastMiniBlock && lastSize != 0) {
-			return bytes.length % TrackerThread.subBlockSize;
+			return lastSize;
 		} else {
-			return TrackerThread.subBlockSize;
+			return miniBlockSize;
 		}
 	}
 

@@ -57,7 +57,8 @@ public class TrackerThread extends Thread {
 
 		myID = ToolKit.generatePeerId();
 
-		if (!metainfo.getAnnounce().startsWith("http")) {
+		if (!metainfo.getAnnounce().startsWith("http")
+				&& metainfo.getAnnounceList() != null) {
 			for (int i = 0; i < metainfo.getAnnounceList().size(); i++) {
 				if (metainfo.getAnnounceList().get(i).get(0).startsWith("http")) {
 					originalUrl = metainfo.getAnnounceList().get(i).get(0);
