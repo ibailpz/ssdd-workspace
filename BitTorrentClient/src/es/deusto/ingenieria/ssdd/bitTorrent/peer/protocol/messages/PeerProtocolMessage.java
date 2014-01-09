@@ -9,7 +9,8 @@ public abstract class PeerProtocolMessage {
 
 	public static enum Type {
 		KEEP_ALIVE(null), CHOKE(0), UNCHOKE(1), INTERESTED(2), NOT_INTERESTED(3), HAVE(
-				4), BITFIELD(5), REQUEST(6), PIECE(7), CANCEL(8), PORT(9);
+				4), BITFIELD(5), REQUEST(6), PIECE(7), CANCEL(8), PORT(9), EXTENDED(
+				20);
 
 		private final Integer id;
 
@@ -144,6 +145,11 @@ public abstract class PeerProtocolMessage {
 			case 9: // port
 				message = new PortMsg(ToolKit.bigEndianBytesToInt(msgBytes, 5)); // Port
 																					// number
+				break;
+			case 20: // extended
+				message = new ExtendedMsg(msgBytes[5], // Message id
+						Arrays.copyOfRange(msgBytes, 6, length + 4));
+				// + 4 because of the first 4 bytes for the message id
 				break;
 			}
 		}

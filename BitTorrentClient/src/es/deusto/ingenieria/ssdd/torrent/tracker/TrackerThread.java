@@ -27,12 +27,13 @@ public class TrackerThread extends Thread {
 
 	private MetainfoFile<?> metainfo;
 	private boolean started = false;
-	private String originalUrl = null;
+	private String baseUrl = null;
 	private long timing = -1;
 	private boolean finishedSent = false;
 	private List<Peer> peersList;
 	private static TrackerThread instance;
 	private String myID = null;
+	private int trackerIndex = -1;
 
 	private TrackerThread(MetainfoFile<?> metainfo) {
 		super("TrackerThread");
@@ -57,25 +58,19 @@ public class TrackerThread extends Thread {
 
 		myID = ToolKit.generatePeerId();
 
-		if (!metainfo.getAnnounce().startsWith("http")
-				&& metainfo.getAnnounceList() != null) {
-			for (int i = 0; i < metainfo.getAnnounceList().size(); i++) {
-				if (metainfo.getAnnounceList().get(i).get(0).startsWith("http")) {
-					originalUrl = metainfo.getAnnounceList().get(i).get(0);
-					break;
-				}
-			}
+		if (metainfo.getAnnounce().startsWith("http")) {
+			baseUrl = metainfo.getAnnounce();
+			baseUrl = baseUrl + "?info_hash="
+					+ metainfo.getInfo().getUrlInfoHash() + "&peer_id=" + myID
+					+ "&port=" + UploadThread.port + "&compact=0"
+					+ "&no_peer_id=1";
 		} else {
-			originalUrl = metainfo.getAnnounce();
+			setNewTracker();
 		}
-		if (originalUrl == null) {
+		if (baseUrl == null) {
 			throw new IllegalArgumentException("No valid announce found");
 		}
-		System.out.println("TrackerThread - Tracker: " + originalUrl);
-
-		originalUrl = originalUrl + "?info_hash="
-				+ metainfo.getInfo().getUrlInfoHash() + "&peer_id=" + myID
-				+ "&port=" + UploadThread.port + "&compact=0" + "&no_peer_id=1";
+		System.out.println("TrackerThread - Tracker: " + baseUrl);
 
 		for (;;) {
 			String url = generateUrl();
@@ -86,12 +81,15 @@ public class TrackerThread extends Thread {
 				System.err.println(getName() + " - " + e1.getMessage());
 				e1.printStackTrace();
 				if (!started) {
-					WindowManager
-							.getInstance()
-							.displayError(
-									"Cannot contact tracker. Please check internet connection and try again later");
+					setNewTracker();
+					if (baseUrl == null) {
+						WindowManager
+								.getInstance()
+								.displayError(
+										"Cannot contact any tracker. Please check internet connection and try again later");
+						break;
+					}
 				}
-				break;
 			}
 
 			if (started) {
@@ -114,9 +112,30 @@ public class TrackerThread extends Thread {
 				break;
 			}
 		}
-		finish();
+		if (baseUrl != null) {
+			finish();
+		}
 		System.out.println("TrackerThread - TrackerThread stopped");
 		WindowManager.exitBlocker.release();
+	}
+
+	private void setNewTracker() {
+		trackerIndex++;
+		baseUrl = null;
+		if (metainfo.getAnnounceList() != null) {
+			for (; trackerIndex < metainfo.getAnnounceList().size(); trackerIndex++) {
+				if (metainfo.getAnnounceList().get(trackerIndex).get(0)
+						.startsWith("http")) {
+					baseUrl = metainfo.getAnnounceList().get(trackerIndex)
+							.get(0);
+					baseUrl = baseUrl + "?info_hash="
+							+ metainfo.getInfo().getUrlInfoHash() + "&peer_id="
+							+ myID + "&port=" + UploadThread.port
+							+ "&compact=0" + "&no_peer_id=1";
+					break;
+				}
+			}
+		}
 	}
 
 	private String generateUrl() {
@@ -124,7 +143,7 @@ public class TrackerThread extends Thread {
 	}
 
 	private String generateUrl(boolean stop) {
-		String url = originalUrl
+		String url = baseUrl
 				+ "&uploaded="
 				+ UploadThread.getInstance().getTotalBytes()
 				+ "&downloaded="
@@ -165,17 +184,10 @@ public class TrackerThread extends Thread {
 
 		HashMap<String, Object> info = new Bencoder().unbencodeDictionary(baos
 				.toByteArray());
-		// for (Entry<String, Object> e : info.entrySet()) {
-		// System.out.println(e.getKey() + " , " + e.getValue());
-		// }
 		timing = (int) info.get("interval") * 1000;
 		System.out.println("TrackerThread - New timing: " + timing);
 		peersList = toPeerList(info.get("peers"));
 		System.out.println("Peers obtained: " + peersList.toString());
-		// for (Peer p : peersList) {
-		// System.out.println(p);
-		// }
-		// peersList = getPeers((String) info.get("peers"));
 	}
 
 	@SuppressWarnings("unchecked")

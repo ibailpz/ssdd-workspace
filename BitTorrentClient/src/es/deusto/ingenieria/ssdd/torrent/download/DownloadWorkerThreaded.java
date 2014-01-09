@@ -169,6 +169,8 @@ public class DownloadWorkerThreaded extends Thread implements InputListener {
 		case UNCHOKE:
 			peer.setChockedUs(false);
 			return false;
+		case EXTENDED:
+			return false;
 		case PIECE:
 			if (downloaded == null) {
 				payload = message.getPayload();
