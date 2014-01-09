@@ -30,10 +30,10 @@ public class ProgressDialog extends JPanel implements FileObserver {
 		JLabel label = new JLabel(name, SwingConstants.LEFT);
 		label.setBorder(border);
 		this.add(label);
-		progress.setBorder(border);
+		// progress.setBorder(border);
 		this.add(progress);
 		indeterminate.setIndeterminate(true);
-		indeterminate.setBorder(border);
+		// indeterminate.setBorder(border);
 		info.setLayout(new BoxLayout(info, BoxLayout.Y_AXIS));
 		info.add(indeterminate);
 		this.add(info);

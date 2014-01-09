@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 
 import javax.swing.JOptionPane;
+import javax.swing.UIManager;
 
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.MetainfoFile;
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.handler.MetainfoFileHandler;
@@ -15,7 +16,15 @@ import es.deusto.ingenieria.ssdd.torrent.upload.UploadThread;
 
 public class Main {
 
+	private static void setLookAndFeel() {
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception ex) {
+		}
+	}
+
 	public static void main(String[] args) {
+		setLookAndFeel();
 		File file = WindowManager.getInstance().showChooseTorrentFile();
 		if (file != null) {
 			MetainfoFileHandler<?> handler;

@@ -59,7 +59,8 @@ public class DownloadWorker extends Thread {
 			// Send handsake
 			Handsake handsake = new Handsake();
 			handsake.setPeerId(TrackerThread.getInstance().getMyID());
-			handsake.setInfoHash(new String(info_hash));
+			// handsake.setInfoHash(new String(info_hash));
+			handsake.setInfoHash(info_hash);
 			out.write(handsake.getBytes());
 			System.out.println(this.getName() + " - Handshake sent: "
 					+ new String(handsake.getBytes()));
