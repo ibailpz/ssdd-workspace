@@ -52,6 +52,8 @@ public class InputThread extends Thread {
 				} else {
 					buffer = Arrays.copyOfRange(buffer, length, buffer.length);
 				}
+			}else {
+				buffer = new byte[0];
 			}
 
 			System.out.println(getName() + " - Data after handshake: "
