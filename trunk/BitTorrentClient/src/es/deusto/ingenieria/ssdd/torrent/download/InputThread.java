@@ -29,7 +29,6 @@ public class InputThread extends Thread {
 			e.printStackTrace();
 		}
 		try {
-			// byte[] buffer = new byte[1024];
 			byte[] buffer = readInput();
 			System.out.println(getName() + " - Read handshake: "
 					+ Arrays.toString(buffer));
@@ -46,13 +45,8 @@ public class InputThread extends Thread {
 
 			if (buffer.length > buffer[0] + 49) {
 				int length = buffer[0] + 49;
-				if (bufferStr.contains("µTorrent")) {
-					buffer = Arrays.copyOfRange(buffer,
-							bufferStr.indexOf("e") + 2, buffer.length);
-				} else {
-					buffer = Arrays.copyOfRange(buffer, length, buffer.length);
-				}
-			}else {
+				buffer = Arrays.copyOfRange(buffer, length, buffer.length);
+			} else {
 				buffer = new byte[0];
 			}
 
@@ -82,45 +76,6 @@ public class InputThread extends Thread {
 				System.out.println(getName() + " - Empty buffer. Reading...");
 				buffer = readInput();
 			} while (!stop);
-
-			// ByteBuffer read = ByteBuffer.wrap(buffer);
-			//
-			// do {
-			// while (read.hasRemaining()) {
-			// PeerProtocolMessage mes = PeerProtocolMessage
-			// .parseMessage(read.slice().array());
-			// listener.messageReceived(mes);
-			// if (mes != null) {
-			// read.position(read.position() + mes.getBytes().length);
-			// } else {
-			// read.position(read.limit());
-			// }
-			// }
-			// read = ByteBuffer.wrap(readInput());
-			// } while (!stop);
-
-			// do {
-			// while (buffer.length > 0) {
-			// PeerProtocolMessage mes = PeerProtocolMessage
-			// .parseMessage(buffer);
-			// listener.messageReceived(mes);
-			// int mesLen = mes.getBytes().length;
-			// if (buffer.length > mesLen) {
-			// buffer = Arrays.copyOfRange(buffer, mesLen,
-			// buffer.length);
-			// }
-			// }
-			// buffer = readInput();
-			// } while (!stop);
-			//
-			// do {
-			// // buffer = new byte[1024];
-			// buffer = readInput();
-			// System.out.println(getName() + " - Read: "
-			// + Arrays.toString(buffer));
-			// listener.messageReceived(PeerProtocolMessage
-			// .parseMessage(buffer));
-			// } while (!stop);
 		} catch (IOException e) {
 			System.err.println(getName() + " - " + e.getMessage());
 			e.printStackTrace();
@@ -128,23 +83,6 @@ public class InputThread extends Thread {
 		listener.messageReceived(null);
 		System.out.println(getName() + " - InputThread finished");
 	}
-
-	// private void readInput(byte[] buffer) throws IOException {
-	// int read = in.read(buffer);
-	// buffer = Arrays.copyOf(buffer, read);
-	// }
-
-	// private byte[] readInput() throws IOException {
-	// ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	// int i;
-	// try {
-	// while ((i = in.read()) != -1) {
-	// baos.write(i);
-	// }
-	// } catch (SocketTimeoutException ex) {
-	// }
-	// return baos.toByteArray();
-	// }
 
 	private byte[] readInput() throws IOException {
 		byte[] buffer = new byte[BUFFER_SIZE];

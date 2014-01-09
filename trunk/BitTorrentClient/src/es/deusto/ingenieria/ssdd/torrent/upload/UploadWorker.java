@@ -68,8 +68,7 @@ public class UploadWorker extends Thread {
 				// Answer with handshake
 				Handsake handsake = new Handsake();
 				handsake.setPeerId(TrackerThread.getInstance().getMyID());
-				handsake.setInfoHash(new String(FileManager.getFileManager()
-						.getInfoHash()));
+				handsake.setInfoHash(FileManager.getFileManager().getInfoHash());
 				out.write(handsake.getBytes());
 				out.flush();
 				System.out.println(this.getName() + " - Handshake sent");
@@ -169,18 +168,6 @@ public class UploadWorker extends Thread {
 		return buffer;
 	}
 
-	// private PeerProtocolMessage readMessage(DataInputStream in)
-	// throws IOException {
-	//
-	// ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	// int i;
-	// while ((i = in.read()) != -1) {
-	// baos.write(i);
-	// }
-	//
-	// return PeerProtocolMessage.parseMessage(baos.toByteArray());
-	// }
-
 	private boolean handleMessage(PeerProtocolMessage message)
 			throws IOException {
 		System.out.println(this.getName() + " - Handling message "
@@ -191,10 +178,6 @@ public class UploadWorker extends Thread {
 		switch (message.getType()) {
 		case REQUEST:
 			RequestMsg req = (RequestMsg) message;
-			// byte[] request = message.getPayload();
-			// int indexRequest = ToolKit.bigEndianBytesToInt(request, 0);
-			// int begin = ToolKit.bigEndianBytesToInt(request, 4);
-			// int length = ToolKit.bigEndianBytesToInt(request, 8);
 			int indexRequest = req.getIndex();
 			int begin = req.getBegin();
 			int length = req.getRequestedLength();
@@ -214,7 +197,6 @@ public class UploadWorker extends Thread {
 				for (int i = begin, j = 0; i < block.length && j < length; i++, j++) {
 					send[j] = block[i];
 				}
-				// out.write(send);
 				PieceMsg ans = new PieceMsg(indexRequest, begin, send);
 				out.write(ans.getBytes());
 				System.out.println(this.getName() + " - " + length
