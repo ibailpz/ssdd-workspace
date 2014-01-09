@@ -49,7 +49,6 @@ public class UploadThread extends Thread {
 					e.printStackTrace();
 					break;
 				}
-				// new UploadWorker(tcpServerSocket.accept()).start();
 				if (isInterrupted()) {
 					break;
 				}

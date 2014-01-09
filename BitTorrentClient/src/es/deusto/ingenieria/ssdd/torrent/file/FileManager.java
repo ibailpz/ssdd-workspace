@@ -13,6 +13,7 @@ import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.FileDictionary;
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.MetainfoFile;
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.MultipleFileInfoDictionary;
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.SingleFileInfoDictionary;
+import es.deusto.ingenieria.ssdd.bitTorrent.util.StringUtils;
 import es.deusto.ingenieria.ssdd.bitTorrent.util.ToolKit;
 
 public class FileManager {
@@ -21,7 +22,6 @@ public class FileManager {
 
 	private MetainfoFile<?> metainfo;
 	private FileObserver observer;
-	// private File tempCompleteFile;
 	private File data;
 	private File tempData;
 
@@ -42,9 +42,6 @@ public class FileManager {
 		data = new File(parent, this.metainfo.getInfo().getName());
 		tempData = new File(parent, this.metainfo.getInfo().getName()
 				+ ".ttemp");
-		// tempCompleteFile = new File(new File(
-		// System.getProperty("java.io.tmpdir"), "BitTorrent"),
-		// this.metainfo.getInfo().getName());
 		this.blocks = new int[metainfo.getInfo().getByteSHA1().size()];
 		for (int i = 0; i < this.blocks.length; i++) {
 			this.blocks[i] = 0;
@@ -158,18 +155,6 @@ public class FileManager {
 		}
 	}
 
-	final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
-
-	public static String bytesToHex(byte[] bytes) {
-		char[] hexChars = new char[bytes.length * 2];
-		for (int j = 0; j < bytes.length; j++) {
-			int v = bytes[j] & 0xFF;
-			hexChars[j * 2] = hexArray[v >>> 4];
-			hexChars[j * 2 + 1] = hexArray[v & 0x0F];
-		}
-		return new String(hexChars);
-	}
-
 	/**
 	 * Checks and saves a block to the temporal file
 	 * 
@@ -190,35 +175,33 @@ public class FileManager {
 				System.out.println("\tOriginal:  "
 						+ Arrays.toString(metainfo.getInfo().getByteSHA1()
 								.get(pos)));
-				System.out
-						.println("\tGenerated: " + Arrays.toString(blockHash));
 				byte[] asciiHash = new String(blockHash).getBytes("ASCII");
+				System.out
+						.println("\tGenerated: " + Arrays.toString(asciiHash));
+				System.out.println("\tOriginal:  "
+						+ metainfo.getInfo().getHexStringSHA1().get(pos));
+				System.out.println("\tGenerated: "
+						+ StringUtils.toHexString(blockHash));
 				if (Arrays.equals(asciiHash, metainfo.getInfo().getByteSHA1()
 						.get(pos))) {
+					// if (StringUtils.toHexString(blockHash).equals(
+					// metainfo.getInfo().getHexStringSHA1().get(pos))) {
 					System.out
 							.println("FileManager - Check correct. Saving...");
 
 					RandomAccessFile raf = new RandomAccessFile(tempData, "rw");
-					// FileOutputStream fos = new FileOutputStream(tempData);
 					byte[] posArray = ByteBuffer.allocate(4).putInt(pos)
 							.array();
-					// FIXME check getDownloadedSize(), watch last block
 					raf.seek((blocks.length * 4) + getDownloadedSize());
 					raf.write(bytes);
 					raf.seek(downloadedBlocks * 4);
 					raf.write(posArray);
-					// fos.write(bytes, (blocks.length * 4) +
-					// getDownloadedSize(),
-					// bytes.length);
-					// fos.write(posArray, downloadedBlocks * 4, 4);
 					blocks[pos] = 1;
 					this.downloadedBlocks++;
 					if (this.observer != null) {
-						// this.observer.downloaded(bytes.length);
 						this.observer.downloaded(1);
 					}
 					raf.close();
-					// fos.close();
 					System.out.println("FileManager - Block " + pos
 							+ " correctly stored");
 				} else {
@@ -271,9 +254,6 @@ public class FileManager {
 		for (int i = 0; i < blocks.length; i++) {
 			bitfield[i] = (byte) (blocks[i] < 1 ? 0 : 1);
 		}
-		// System.out.println("FileManager - Bitfield[" + bitfield.length +
-		// "]: "
-		// + Arrays.toString(bitfield));
 		return bitfield;
 	}
 
@@ -283,31 +263,17 @@ public class FileManager {
 		}
 		byte[] bytes = new byte[getBlockLength()];
 		synchronized (_fileLock) {
-			// FileInputStream fis = null;
 			RandomAccessFile raf = null;
 			try {
 				if (isFinished()) {
-					// fis = new FileInputStream(data);
-					// raf = new RandomAccessFile(data, "r");
-					// return loadBlock(index, bytes, raf, false);
 					return loadBlock(index, bytes, false);
 				} else {
-					// fis = new FileInputStream(tempData);
-					// raf = new RandomAccessFile(tempData, "r");
-					// return loadBlock(index, bytes, raf, true);
 					return loadBlock(index, bytes, true);
 				}
 			} catch (IOException ex) {
 				ex.printStackTrace();
 				bytes = null;
 			} finally {
-				// if (fis != null) {
-				// try {
-				// fis.close();
-				// } catch (IOException e) {
-				// e.printStackTrace();
-				// }
-				// }
 				if (raf != null) {
 					try {
 						raf.close();
@@ -359,7 +325,6 @@ public class FileManager {
 				int read = raf.read(bytes);
 				return Arrays.copyOf(bytes, read);
 			} else {
-				// FIXME do it with multiple files
 				if (metainfo.getInfo() instanceof SingleFileInfoDictionary) {
 					raf = new RandomAccessFile(data, "r");
 					raf.seek(index * getBlockLength());
@@ -402,29 +367,6 @@ public class FileManager {
 		}
 	}
 
-	// private void loadBlock(int index, byte[] bytes, FileInputStream fis,
-	// boolean isTemp) throws IOException {
-	// if (isTemp) {
-	// byte[] b = new byte[4];
-	// int i = 0;
-	// for (; i < this.blocks.length; i++) {
-	// fis.read(b);
-	// int pos = ByteBuffer.wrap(b).getInt();
-	// if (pos == index) {
-	// break;
-	// }
-	// }
-	// if (i == this.blocks.length) {
-	// throw new IOException("Block " + index
-	// + " is not in the temp file");
-	// }
-	// fis.read(bytes, (this.blocks.length * 4) + (i * getBlockLength()),
-	// getBlockLength());
-	// } else {
-	// fis.read(bytes, (index * getBlockLength()), getBlockLength());
-	// }
-	// }
-
 	public byte[] getInfoHash() {
 		return metainfo.getInfo().getInfoHash();
 	}
@@ -458,19 +400,7 @@ public class FileManager {
 		System.out.println("FileManager - Checking temp file...");
 		if (isFinished() && tempData.exists()) {
 			observer.finishing();
-			// tempCompleteFile.getParentFile().mkdirs();
-			// FileInputStream tempDataInput = null;
-
-			// RandomAccessFile tempDataInput = null;
-			// FileOutputStream dataOutput = null;
-
-			// boolean completed = false;
 			try {
-				// tempDataInput = new FileInputStream(tempData);
-
-				// tempDataInput = new RandomAccessFile(tempData, "r");
-				// dataOutput = new FileOutputStream(data);
-				// storeData(tempDataInput, dataOutput);
 				storeData();
 			} catch (IOException e) {
 				System.err.println("FileManager - " + e.getMessage());
@@ -478,33 +408,6 @@ public class FileManager {
 				deleteFileOrDirectory(data);
 				return false;
 			}
-			// finally {
-			// if (tempDataInput != null) {
-			// try {
-			// tempDataInput.close();
-			// } catch (IOException e) {
-			// System.err.println("FileManager - " + e.getMessage());
-			// e.printStackTrace();
-			// }
-			// }
-			// if (dataOutput != null) {
-			// try {
-			// dataOutput.close();
-			// } catch (IOException e) {
-			// System.err.println("FileManager - " + e.getMessage());
-			// e.printStackTrace();
-			// }
-			// }
-			// }
-
-			// completed = checkFinalFile();
-			// if (completed) {
-			// observer.finished();
-			// tempData.delete();
-			// } else {
-			// deleteFileOrDirectory(data);
-			// }
-			// return completed;
 
 			observer.finished();
 			tempData.delete();
@@ -525,34 +428,6 @@ public class FileManager {
 		file.delete();
 	}
 
-	private boolean checkFinalFile() {
-		// byte[] generatedHash = ToolKit.generateSHA1Hash(ToolKit
-		// .fileToByteArray(data.getAbsolutePath()));
-		byte[] generatedHash = ToolKit.generateSHA1HashForFile(data);
-		System.out.println("FileManager - Hash comparison:");
-		// System.out.println("\tOriginal:  "
-		// + Arrays.toString(metainfo.getInfo().getInfoHash()));
-		// System.out.println("\tGenerated: " + Arrays.toString(generatedHash));
-		System.out.println("\tOriginal:  "
-				+ Arrays.toString(metainfo.getInfo().getInfoHash()));
-		System.out.println("\tGenerated: " + Arrays.toString(generatedHash));
-		if (Arrays.equals(metainfo.getInfo().getInfoHash(), generatedHash)) {
-			System.out
-					.println("FileManager - Hash check successful. Generating final file...");
-			return true;
-		} else {
-			System.out
-					.println("FileManager - Hash check failed. Starting over again...");
-			try {
-				initTemp();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			observer.restart();
-			return false;
-		}
-	}
-
 	private void storeData() throws IOException {
 		RandomAccessFile tempDataInput = new RandomAccessFile(tempData, "r");
 		FileOutputStream dataOutput = null;
@@ -562,13 +437,10 @@ public class FileManager {
 				byte[] bytes;
 				for (int i = 0; i < this.blocks.length; i++) {
 					bytes = new byte[getBlockLength()];
-					// bytes = loadBlock(i, bytes, tempDataInput, true);
 					bytes = loadBlock(i, bytes, true);
 					dataOutput.write(bytes);
 				}
 			} else {
-				// TODO Handle storage with multiple files
-				// data.mkdir();
 				MultipleFileInfoDictionary info = (MultipleFileInfoDictionary) metainfo
 						.getInfo();
 				List<FileDictionary> files = info.getFiles();
@@ -577,7 +449,6 @@ public class FileManager {
 				int blockIndex = 0;
 				int wrote = 0;
 				boolean read = true;
-				boolean isFinished = false;
 				File current = new File(data.getParent(), files.get(fileIndex)
 						.getPath());
 				current.getParentFile().mkdirs();
@@ -585,8 +456,6 @@ public class FileManager {
 				do {
 					if (read) {
 						bytes = new byte[getBlockLength()];
-						// bytes = loadBlock(blockIndex, bytes, tempDataInput,
-						// true);
 						bytes = loadBlock(blockIndex, bytes, true);
 					} else {
 						read = true;
@@ -596,9 +465,7 @@ public class FileManager {
 						dataOutput.write(bytes, 0, left);
 						dataOutput.close();
 						fileIndex++;
-						if (fileIndex == files.size()) {
-							isFinished = true;
-						} else {
+						if (fileIndex != files.size()) {
 							current = new File(data.getParent(), info
 									.getFiles().get(fileIndex).getPath());
 							current.getParentFile().mkdirs();
@@ -613,16 +480,7 @@ public class FileManager {
 						wrote += bytes.length;
 						blockIndex++;
 					}
-				} while (!isFinished);
-				// long wrote = 0;
-				// bytes = new byte[getBlockLength()];
-				// bytes = loadBlock(0, bytes, tempDataInput, true);
-				// wrote += bytes.length;
-				// for (FileDictionary f : files) {
-				// dataOutput = new FileOutputStream(new File(data,
-				// f.getPath()));
-				//
-				// }
+				} while (fileIndex < files.size() && blockIndex < blocks.length);
 			}
 		} finally {
 			if (dataOutput != null) {
@@ -633,18 +491,4 @@ public class FileManager {
 			}
 		}
 	}
-	// private void storeData(RandomAccessFile raf, FileOutputStream dataOutput)
-	// throws IOException {
-	// if (metainfo.getInfo() instanceof SingleFileInfoDictionary) {
-	// byte[] bytes;
-	// for (int i = 0; i < this.blocks.length; i++) {
-	// bytes = new byte[getBlockLength()];
-	// bytes = loadBlock(i, bytes, raf, true);
-	// dataOutput.write(bytes);
-	// }
-	// } else {
-	//
-	// }
-	// }
-
 }

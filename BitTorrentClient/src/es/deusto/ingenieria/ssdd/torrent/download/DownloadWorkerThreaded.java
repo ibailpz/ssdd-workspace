@@ -64,7 +64,8 @@ public class DownloadWorkerThreaded extends Thread implements InputListener {
 			// Send handsake
 			Handsake handsake = new Handsake();
 			handsake.setPeerId(TrackerThread.getInstance().getMyID());
-			handsake.setInfoHash(new String(info_hash));
+			// handsake.setInfoHash(new String(info_hash));
+			handsake.setInfoHash(info_hash);
 			out.write(handsake.getBytes());
 			System.out.println(this.getName() + " - Handshake sent");
 			new InputThread(threadName, this, this.in).start();

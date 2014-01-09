@@ -9,7 +9,7 @@ public class Handsake {
 	private int nameLength;
 	private String protocolName;
 	private String reserved;
-	private String infoHash;
+	private byte[] infoHash;
 	private String peerId;
 	
 	public Handsake() {		
@@ -35,11 +35,11 @@ public class Handsake {
 		return reserved;
 	}
 
-	public String getInfoHash() {
+	public byte[] getInfoHash() {
 		return infoHash;
 	}
 
-	public void setInfoHash(String infoHash) {
+	public void setInfoHash(byte[] infoHash) {
 		this.infoHash = infoHash;
 	}
 
@@ -58,7 +58,7 @@ public class Handsake {
 			result.write(this.nameLength);
 			result.write(this.protocolName.getBytes());
 			result.write(this.reserved.getBytes());
-			result.write(this.infoHash.getBytes());
+			result.write(this.infoHash);
 			result.write(this.peerId.getBytes());
 			
 			return result.toByteArray();

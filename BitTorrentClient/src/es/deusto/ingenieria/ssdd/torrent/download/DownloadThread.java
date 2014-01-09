@@ -41,7 +41,6 @@ public class DownloadThread extends Thread {
 	}
 
 	public void updatePeers(List<Peer> newPeerList) {
-		// TODO
 		System.out.println("DownloadThread - Peers updated");
 		this.peerList = newPeerList;
 		// noPeers.release(Integer.MAX_VALUE);
@@ -53,8 +52,8 @@ public class DownloadThread extends Thread {
 		super.run();
 		System.out.println("DownloadThread - DownloadThread started");
 
-		// block = new Semaphore(peerList.size());
-		block = new Semaphore(30);
+		block = new Semaphore(peerList.size());
+		// block = new Semaphore(0);
 		finished = FileManager.getFileManager().isFinished();
 
 		int[] blockSubBlock = new int[3];
