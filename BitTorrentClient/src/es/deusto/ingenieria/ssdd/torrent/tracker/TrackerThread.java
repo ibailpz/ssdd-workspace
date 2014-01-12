@@ -73,23 +73,30 @@ public class TrackerThread extends Thread {
 		System.out.println("TrackerThread - Tracker: " + baseUrl);
 
 		for (;;) {
-			String url = generateUrl();
-
-			try {
-				makeConnection(url);
-			} catch (IOException e1) {
-				System.err.println(getName() + " - " + e1.getMessage());
-				e1.printStackTrace();
-				if (!started) {
-					setNewTracker();
-					if (baseUrl == null) {
-						WindowManager
-								.getInstance()
-								.displayError(
-										"Cannot contact any tracker. Please check internet connection and try again later");
-						break;
+			boolean connected = false;
+			do {
+				String url = generateUrl();
+				try {
+					makeConnection(url);
+					connected = true;
+				} catch (IOException e1) {
+					System.err.println(getName() + " - " + e1.getMessage());
+					e1.printStackTrace();
+					if (!started) {
+						setNewTracker();
+						if (baseUrl == null) {
+							WindowManager
+									.getInstance()
+									.displayError(
+											"Cannot contact any tracker. Please check internet connection and try again later");
+							break;
+						}
 					}
 				}
+			} while (!connected);
+
+			if (!connected) {
+				break;
 			}
 
 			if (started) {
@@ -122,16 +129,19 @@ public class TrackerThread extends Thread {
 	private void setNewTracker() {
 		trackerIndex++;
 		baseUrl = null;
-		if (metainfo.getAnnounceList() != null) {
-			for (; trackerIndex < metainfo.getAnnounceList().size(); trackerIndex++) {
-				if (metainfo.getAnnounceList().get(trackerIndex).get(0)
+		if (metainfo.getAnnounceList() != null
+				&& metainfo.getAnnounceList().get(0) != null) {
+			for (; trackerIndex < metainfo.getAnnounceList().get(0).size(); trackerIndex++) {
+				if (metainfo.getAnnounceList().get(0).get(trackerIndex)
 						.startsWith("http")) {
-					baseUrl = metainfo.getAnnounceList().get(trackerIndex)
-							.get(0);
+					baseUrl = metainfo.getAnnounceList().get(0)
+							.get(trackerIndex);
 					baseUrl = baseUrl + "?info_hash="
 							+ metainfo.getInfo().getUrlInfoHash() + "&peer_id="
 							+ myID + "&port=" + UploadThread.port
 							+ "&compact=0" + "&no_peer_id=1";
+					System.out
+							.println(getName() + " - New tracker: " + baseUrl);
 					break;
 				}
 			}
