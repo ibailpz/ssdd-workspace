@@ -263,24 +263,11 @@ public class FileManager {
 		}
 		byte[] bytes = new byte[getBlockLength()];
 		synchronized (_fileLock) {
-			RandomAccessFile raf = null;
 			try {
-				if (isFinished()) {
-					return loadBlock(index, bytes, false);
-				} else {
-					return loadBlock(index, bytes, true);
-				}
+				return loadBlock(index, bytes, !isFinished());
 			} catch (IOException ex) {
 				ex.printStackTrace();
 				bytes = null;
-			} finally {
-				if (raf != null) {
-					try {
-						raf.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
 			}
 		}
 		return bytes;
