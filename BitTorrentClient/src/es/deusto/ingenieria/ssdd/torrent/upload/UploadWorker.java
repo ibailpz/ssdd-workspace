@@ -54,14 +54,24 @@ public class UploadWorker extends Thread {
 			ByteBuffer handshake = ByteBuffer.wrap(bytes);
 			handshake.get(new byte[length + 8]); // Read length
 													// + 8 zeros
-													// (usually 28)
+													// (usually 28 'til here)
 			handshake.get(info_hash);
-			System.out.println(this.getName() + " - Handshake read: "
-					+ new String(info_hash) + "; ours: "
+			System.out.println(this.getName() + " - Handshake read");
+			System.out.println("\tOriginal: "
+					+ Arrays.toString(FileManager.getFileManager()
+							.getInfoHash()));
+			System.out.println("\tRead:     " + Arrays.toString(info_hash));
+			System.out.println("\t          " + Arrays.toString(bytes));
+			
+			System.out.println("\tOriginal: "
 					+ new String(FileManager.getFileManager().getInfoHash()));
+			System.out.println("\tRead:     " + new String(info_hash));
+			System.out.println("\t          " + new String(bytes));
 
-			if (new String(FileManager.getFileManager().getInfoHash())
-					.equals(new String(info_hash))) {
+			// if (new String(FileManager.getFileManager().getInfoHash())
+			// .equals(new String(info_hash))) {
+			if (Arrays.equals(FileManager.getFileManager().getInfoHash(),
+					info_hash)) {
 
 				System.out.println(this.getName() + " - Handshake correct");
 

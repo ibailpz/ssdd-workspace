@@ -337,8 +337,10 @@ public class FileManager {
 					do {
 						raf = new RandomAccessFile(new File(data.getParent(),
 								files.get(fileIndex).getPath()), "r");
+						raf.seek(bytePos);
 						read += raf.read(bytes, read, bytes.length - read);
 						fileIndex++;
+						bytePos = 0;
 					} while (read < bytes.length && fileIndex < files.size());
 					if (read < bytes.length) {
 						return null;
