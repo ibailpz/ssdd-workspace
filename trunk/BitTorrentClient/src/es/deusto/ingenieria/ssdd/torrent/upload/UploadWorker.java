@@ -68,8 +68,6 @@ public class UploadWorker extends Thread {
 			System.out.println("\tRead:     " + new String(info_hash));
 			System.out.println("\t          " + new String(bytes));
 
-			// if (new String(FileManager.getFileManager().getInfoHash())
-			// .equals(new String(info_hash))) {
 			if (Arrays.equals(FileManager.getFileManager().getInfoHash(),
 					info_hash)) {
 

@@ -55,11 +55,6 @@ public class Main {
 						meta.getInfo().getName(), progress);
 			} catch (IOException e) {
 				e.printStackTrace();
-				// JOptionPane
-				// .showMessageDialog(
-				// null,
-				// "Error creating file for download. Check that you have rights to write in the directory and that there is enough space for the file.",
-				// "Error", JOptionPane.ERROR_MESSAGE);
 				JOptionPane.showMessageDialog(null, e.getMessage(), "Error",
 						JOptionPane.ERROR_MESSAGE);
 			}

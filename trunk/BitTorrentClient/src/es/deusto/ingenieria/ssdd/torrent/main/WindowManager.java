@@ -115,7 +115,6 @@ public class WindowManager {
 	}
 
 	private void quit() {
-		// FIXM Terminate threads on close
 		TrackerThread.getInstance().interrupt();
 		if (DownloadThread.getInstance() != null) {
 			DownloadThread.getInstance().interrupt();

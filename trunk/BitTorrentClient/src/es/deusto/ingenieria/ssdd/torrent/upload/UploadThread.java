@@ -11,7 +11,7 @@ public class UploadThread extends Thread {
 	private static UploadThread instance;
 	public static final int port = 8888;
 	private ServerSocket tcpServerSocket;
-	private Semaphore block = new Semaphore(5);
+	private Semaphore block = new Semaphore(10);
 	private long totalBytes = 0;
 
 	private UploadThread() {

@@ -16,7 +16,6 @@ public class DownloadThread extends Thread {
 	private static DownloadThread instance;
 	private List<Peer> peerList;
 	private Semaphore block;
-	// private Semaphore noPeers = new Semaphore(0);
 	private HashMap<Integer, BlockTemp> blocksControl = new HashMap<>();
 	private long donwloadedBytes = 0;
 	private boolean finished;
@@ -43,8 +42,6 @@ public class DownloadThread extends Thread {
 	public void updatePeers(List<Peer> newPeerList) {
 		System.out.println("DownloadThread - Peers updated");
 		this.peerList = newPeerList;
-		// noPeers.release(Integer.MAX_VALUE);
-		// noPeers = new Semaphore(0);
 	}
 
 	@Override
@@ -53,7 +50,6 @@ public class DownloadThread extends Thread {
 		System.out.println("DownloadThread - DownloadThread started");
 
 		block = new Semaphore(peerList.size());
-		// block = new Semaphore(0);
 		finished = FileManager.getFileManager().isFinished();
 
 		int[] blockSubBlock = new int[3];
@@ -75,14 +71,7 @@ public class DownloadThread extends Thread {
 						exit = true;
 					}
 				} else {
-					System.out
-							.println("No peers available. Waiting for update...");
-					// try {
-					// noPeers.acquire();
-					// } catch (InterruptedException e) {
-					// e.printStackTrace();
-					// exit = true;
-					// }
+					System.out.println("No peers available. Waiting...");
 					try {
 						Thread.sleep(1000);
 					} catch (InterruptedException e) {
@@ -99,7 +88,7 @@ public class DownloadThread extends Thread {
 		System.out.println("DownloadThread - DownloadThread stopped and "
 				+ (finished ? "" : "not ") + "finished downloading");
 		// TrackerThread.getInstance().interrupt();
-		// finished = FileManager.getFileManager().checkAndWriteFile();
+		FileManager.getFileManager().writeIfNeeded();
 		WindowManager.exitBlocker.release();
 	}
 
@@ -142,13 +131,6 @@ public class DownloadThread extends Thread {
 	void childFinished(int blockPos, int offset, byte[] bytes) {
 		System.out.println("DownloadThread - Child for block " + blockPos
 				+ " and offset " + offset + " finished");
-		// BlockTemp bt = new BlockTemp(blockPos, 0, 0);
-		// int index = blocksControl.indexOf(bt);
-		// // if (index >= 0) {
-		// bt = blocksControl.get(index);
-		// // } else {
-		// // blocksControl.add(bt);
-		// // }
 		BlockTemp bt = blocksControl.get(blockPos);
 		if (bytes != null) {
 			System.out
