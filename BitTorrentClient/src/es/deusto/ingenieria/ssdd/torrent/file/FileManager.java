@@ -13,7 +13,6 @@ import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.FileDictionary;
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.MetainfoFile;
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.MultipleFileInfoDictionary;
 import es.deusto.ingenieria.ssdd.bitTorrent.metainfo.SingleFileInfoDictionary;
-import es.deusto.ingenieria.ssdd.bitTorrent.util.StringUtils;
 import es.deusto.ingenieria.ssdd.bitTorrent.util.ToolKit;
 
 public class FileManager {
@@ -62,34 +61,7 @@ public class FileManager {
 	}
 
 	private void loadFile() throws IOException {
-		// TODO Check in Linux
-		// System.out
-		// .println("File system roots returned byFileSystemView.getFileSystemView():");
-		// FileSystemView fsv = FileSystemView.getFileSystemView();
-		// File[] roots = fsv.getRoots();
-		// for (int i = 0; i < roots.length; i++) {
-		// System.out.println("Root: " + roots[i]);
-		// }
-		//
-		// System.out.println("Home directory: " + fsv.getHomeDirectory());
-		//
-		// System.out.println("File system roots returned by File.listRoots():");
-		// File[] f = File.listRoots();
-		// for (int i = 0; i < f.length; i++) {
-		// System.out.println("Drive: " + f[i]);
-		// System.out.println("Display name: "
-		// + fsv.getSystemDisplayName(f[i]));
-		// System.out.println("Is drive: " + fsv.isDrive(f[i]));
-		// System.out.println("Is floppy: " + fsv.isFloppyDrive(f[i]));
-		// System.out.println("Readable: " + f[i].canRead());
-		// System.out.println("Writable: " + f[i].canWrite());
-		// System.out.println("Total space: " + f[i].getTotalSpace());
-		// System.out.println("Usable space: " + f[i].getUsableSpace());
-		// }
-		// System.out.println();
-
 		System.out.println("FileManager - Loading data");
-
 		synchronized (_fileLock) {
 			if (data.exists()) {
 				System.out.println("FileManager - Already downloaded");
@@ -101,9 +73,6 @@ public class FileManager {
 				if (!tempData.exists()) {
 					System.out
 							.println("FileManager - No temp data. Creating temp file...");
-					// if (length >= data.getFreeSpace()) {
-					// throw new IOException("Not enough space to create file");
-					// }
 					tempData.createNewFile();
 					initTemp();
 					System.out.println("FileManager - Temp file created");
@@ -178,14 +147,8 @@ public class FileManager {
 				byte[] asciiHash = new String(blockHash).getBytes("ASCII");
 				System.out
 						.println("\tGenerated: " + Arrays.toString(asciiHash));
-				System.out.println("\tOriginal:  "
-						+ metainfo.getInfo().getHexStringSHA1().get(pos));
-				System.out.println("\tGenerated: "
-						+ StringUtils.toHexString(blockHash));
 				if (Arrays.equals(asciiHash, metainfo.getInfo().getByteSHA1()
 						.get(pos))) {
-					// if (StringUtils.toHexString(blockHash).equals(
-					// metainfo.getInfo().getHexStringSHA1().get(pos))) {
 					System.out
 							.println("FileManager - Check correct. Saving...");
 
@@ -261,7 +224,7 @@ public class FileManager {
 		if (blocks[index] < 1) {
 			return null;
 		}
-		byte[] bytes = new byte[getBlockLength()];
+		byte[] bytes = new byte[getBlockSize(index)];
 		synchronized (_fileLock) {
 			try {
 				return loadBlock(index, bytes, !isFinished());
@@ -376,6 +339,12 @@ public class FileManager {
 			return getTotalSize() - (getBlockLength() * (blocks.length - 1));
 		} else {
 			return getBlockLength();
+		}
+	}
+
+	public void writeIfNeeded() {
+		if (!data.exists()) {
+			checkAndWriteFile();
 		}
 	}
 

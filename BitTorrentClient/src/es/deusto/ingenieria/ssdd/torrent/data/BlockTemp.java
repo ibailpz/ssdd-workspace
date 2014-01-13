@@ -41,14 +41,6 @@ public class BlockTemp {
 		return pos;
 	}
 
-	// public void miniBlockStarted(int length) {
-	// nextMiniBlock += length;
-	// }
-	//
-	// public void miniBlockDownloadFailed(int length) {
-	// nextMiniBlock -= length;
-	// }
-
 	public void miniBlockDownloadFailed(int miniblock) {
 		synchronized (miniBlocks) {
 			miniBlocks.add(miniblock);
@@ -56,7 +48,6 @@ public class BlockTemp {
 	}
 
 	public int getNextMiniBlock() {
-		// return nextMiniBlock;
 		synchronized (miniBlocks) {
 			return miniBlocks.remove(0);
 		}

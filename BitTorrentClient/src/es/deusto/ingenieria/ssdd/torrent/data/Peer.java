@@ -30,7 +30,6 @@ public class Peer {
 	}
 
 	public synchronized void setBitfield(int[] bitfield) {
-		// this.bitfield = bitfield;
 		if (this.bitfield.length != bitfield.length) {
 			System.out.println("Different length bitfield received. Weird...");
 			return;
